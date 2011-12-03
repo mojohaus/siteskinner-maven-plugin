@@ -59,6 +59,7 @@ import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
@@ -225,6 +226,9 @@ public class SkinMojo
                     releasedModel = reader.read( new FileInputStream( releasedSiteXml ) );
                 }
                 releasedModel.setSkin( currentModel.getSkin() );
+                
+                Xpp3Dom mergedCustom  = Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
+                releasedModel.setCustom( mergedCustom );
 
                 writer.write( new FileOutputStream( releasedSiteXml ), releasedModel );
             }
