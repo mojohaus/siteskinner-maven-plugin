@@ -62,12 +62,10 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
- * Call <code>mvn skinner:skin</code> on a maven project.
- * 
- * This will check out the latest releases project.
- * Next it will add/replace the skin of the site.xml with the skin of the current project.
- * Finally it will invoke a <code>mvn site</code> on the checked out project.
- * Now you can verify the pages and run a <code>mvn site-deploy</code> on the checked out project. 
+ * Call <code>mvn skinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
+ * add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
+ * <code>mvn site</code> on the checked out project. Now you can verify the pages and run a <code>mvn site-deploy</code>
+ * on the checked out project.
  * 
  * @goal skin
  */
@@ -75,9 +73,9 @@ public class SkinMojo
     extends AbstractMojo
 {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
-    
+
     /**
-     * Force a checkout instead of an update when the sources have already been checked out during a previous run. 
+     * Force a checkout instead of an update when the sources have already been checked out during a previous run.
      * 
      * @parameter expression="${forceCheckout}" default-value="false"
      */
@@ -96,33 +94,33 @@ public class SkinMojo
      * @readonly
      */
     private File workingDirectory;
-    
+
     /**
      * The reactor projects.
-     *
+     * 
      * @parameter default-value="${reactorProjects}"
      * @required
      * @readonly
      */
     private List<MavenProject> reactorProjects;
-    
+
     /**
      * Specifies the input encoding.
-     *
+     * 
      * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
      */
     private String inputEncoding;
 
     /**
      * Specifies the output encoding.
-     *
+     * 
      * @parameter expression="${outputEncoding}" default-value="${project.reporting.outputEncoding}"
      */
     private String outputEncoding;
 
     /**
      * Gets the input files encoding.
-     *
+     * 
      * @return The input files encoding, never <code>null</code>.
      */
     private String getInputEncoding()
@@ -132,14 +130,14 @@ public class SkinMojo
 
     /**
      * Gets the effective reporting output files encoding.
-     *
+     * 
      * @return The effective reporting output file encoding, never <code>null</code>.
      */
     private String getOutputEncoding()
     {
         return ( outputEncoding == null ) ? ReaderFactory.UTF_8 : outputEncoding;
     }
-    
+
     /**
      * @parameter default-value="${project}"
      * @required
@@ -155,7 +153,7 @@ public class SkinMojo
      * @required
      */
     private ArtifactRepository localRepository;
-    
+
     /**
      * The remote repositories where artifacts are located.
      * 
@@ -176,13 +174,13 @@ public class SkinMojo
 
     /** @component */
     private ArtifactFactory factory;
-    
+
     /** @component */
     private SiteTool siteTool;
-    
+
     /** @component */
     private Invoker invoker;
-    
+
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -195,32 +193,40 @@ public class SkinMojo
         {
             throw new MojoExecutionException( e.getMessage() );
         }
-        
+
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
-        String releasedSiteDirectory = releasedConfig.getChild( "siteDirectory" ) == null ? "src/site" : releasedConfig.getChild( "siteDirectory" ).getValue();
-        String releasedLocales = releasedConfig.getChild( "locales" ) == null ? null : releasedConfig.getChild( "locales" ).getValue();
-        
+        String releasedSiteDirectory =
+            releasedConfig.getChild( "siteDirectory" ) == null ? "src/site"
+                            : releasedConfig.getChild( "siteDirectory" ).getValue();
+        String releasedLocales =
+            releasedConfig.getChild( "locales" ) == null ? null : releasedConfig.getChild( "locales" ).getValue();
+
         Xpp3Dom currentConfig = getSitePluginConfiguration( currentProject );
-        String currentSiteDirectory = currentConfig.getChild( "siteDirectory" ) == null ? "src/site" : currentConfig.getChild( "siteDirectory" ).getValue();
+        String currentSiteDirectory =
+            currentConfig.getChild( "siteDirectory" ) == null ? "src/site"
+                            : currentConfig.getChild( "siteDirectory" ).getValue();
         try
         {
             DecorationXpp3Writer writer = new DecorationXpp3Writer();
             DecorationXpp3Reader reader = new DecorationXpp3Reader();
-            
-            for( Locale locale : siteTool.getAvailableLocales( releasedLocales ) )
-            {
-                DecorationModel currentModel = siteTool.getDecorationModel( currentProject, reactorProjects, localRepository, remoteRepositories, currentSiteDirectory, locale, getInputEncoding(), getOutputEncoding() );
 
-                File releasedSiteXml = siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
-                
+            for ( Locale locale : siteTool.getAvailableLocales( releasedLocales ) )
+            {
+                DecorationModel currentModel =
+                    siteTool.getDecorationModel( currentProject, reactorProjects, localRepository, remoteRepositories,
+                                                 currentSiteDirectory, locale, getInputEncoding(), getOutputEncoding() );
+
+                File releasedSiteXml =
+                    siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
+
                 DecorationModel releasedModel = null;
-                if( releasedSiteXml.exists() )
+                if ( releasedSiteXml.exists() )
                 {
                     releasedModel = reader.read( new FileInputStream( releasedSiteXml ) );
                 }
                 releasedModel.setSkin( currentModel.getSkin() );
-                
-                writer.write( new FileOutputStream( releasedSiteXml), releasedModel );
+
+                writer.write( new FileOutputStream( releasedSiteXml ), releasedModel );
             }
         }
         catch ( SiteToolException e )
@@ -229,20 +235,20 @@ public class SkinMojo
         }
         catch ( IOException e )
         {
-            throw new MojoExecutionException( e.getMessage() );        
+            throw new MojoExecutionException( e.getMessage() );
         }
         catch ( XmlPullParserException e )
         {
-            throw new MojoExecutionException( e.getMessage() );        
+            throw new MojoExecutionException( e.getMessage() );
         }
-        
+
         InvocationRequest request = new DefaultInvocationRequest();
         request.setGoals( Collections.singletonList( "site" ) );
         request.setPomFile( releasedProject.getFile() );
         try
         {
             InvocationResult invocationResult = invoker.execute( request );
-            if( invocationResult.getExitCode() != 0 )
+            if ( invocationResult.getExitCode() != 0 )
             {
                 throw new MojoExecutionException( invocationResult.getExecutionException().getMessage() );
             }
@@ -258,7 +264,8 @@ public class SkinMojo
         Plugin sitePlugin = (Plugin) releasedProject.getBuild().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         if ( sitePlugin == null )
         {
-            sitePlugin = (Plugin) releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+            sitePlugin =
+                (Plugin) releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
         return (Xpp3Dom) sitePlugin.getConfiguration();
     }
