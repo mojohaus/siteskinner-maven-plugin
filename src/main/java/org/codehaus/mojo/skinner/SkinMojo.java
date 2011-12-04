@@ -38,6 +38,7 @@ import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException
 import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.doxia.site.decoration.DecorationModel;
+import org.apache.maven.doxia.site.decoration.PublishDate;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
@@ -83,6 +84,11 @@ public class SkinMojo
      * @parameter expression="${forceCheckout}" default-value="false"
      */
     private boolean forceCheckout;
+    
+    /**
+     * @parameter expression="${siteDeploy}" default-value="false"
+     */
+    private boolean siteDeploy;
 
     /**
      * @parameter default-value="(,${project.version})"
@@ -249,7 +255,7 @@ public class SkinMojo
         }
 
         InvocationRequest request = new DefaultInvocationRequest();
-        request.setGoals( Collections.singletonList( "site" ) );
+        request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
         request.setPomFile( releasedProject.getFile() );
         try
         {
