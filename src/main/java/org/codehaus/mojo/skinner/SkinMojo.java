@@ -69,6 +69,8 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  * on the checked out project.
  * 
  * @goal skin
+ * @requiresDirectInvocation
+ * @aggregator true
  */
 public class SkinMojo
     extends AbstractMojo
