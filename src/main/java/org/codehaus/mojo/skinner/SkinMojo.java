@@ -34,10 +34,12 @@ import java.util.jar.JarFile;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.metadata.ArtifactMetadataRetrievalException;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
 import org.apache.maven.artifact.repository.ArtifactRepository;
+import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
+import org.apache.maven.artifact.resolver.ArtifactResolutionException;
+import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
@@ -67,13 +69,6 @@ import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.repository.RemoteRepository;
-import org.sonatype.aether.resolution.ArtifactRequest;
-import org.sonatype.aether.resolution.ArtifactResolutionException;
-import org.sonatype.aether.resolution.ArtifactResult;
-import org.sonatype.aether.util.artifact.DefaultArtifact;
 
 /**
  * Call <code>mvn skinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
@@ -201,6 +196,9 @@ public class SkinMojo
 
     /** @component */
     private ArtifactFactory factory;
+    
+    /** @component */
+    private ArtifactResolver resolver;
 
     /** @component */
     private SiteTool siteTool;
@@ -208,29 +206,6 @@ public class SkinMojo
     /** @component */
     private Invoker invoker;
     
-    /** 
-     * The entry point to Aether, i.e. the component doing all the work. 
-     * 
-     * @component 
-     */
-    private RepositorySystem repoSystem;
-
-    /**
-     * The current repository/network configuration of Maven.
-     *  
-     * @parameter default-value="${repositorySystemSession}"
-     * @readonly
-     */
-    private RepositorySystemSession repoSession;
-
-    /**
-     * The project's remote repositories to use for the resolution of plugins and their dependencies.
-     * 
-     * @parameter default-value="${project.remotePluginRepositories}" 
-     * @readonly
-     */
-    private List<RemoteRepository> remoteRepos;
-
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -313,8 +288,21 @@ public class SkinMojo
                 
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
                 
+                try
+                {
+                    resolver.resolve( releasedArtifact, remoteRepositories, localRepository );
+                }
+                catch ( ArtifactResolutionException e )
+                {
+                    throw new MojoExecutionException( e.getMessage() );
+                }
+                catch ( ArtifactNotFoundException e )
+                {
+                    throw new MojoExecutionException( e.getMessage() );
+                }
+                
                 //Use the modified-date from the first entry of the jar as releaseDate
-                JarFile jarFile = new JarFile( getArtifactFile( releasedArtifact ) );
+                JarFile jarFile = new JarFile( releasedArtifact.getFile() );
                 JarEntry entry = jarFile.entries().nextElement();
                 
                 Date releaseDate = new Date( entry.getTime() );
@@ -498,27 +486,5 @@ public class SkinMojo
         {
             throw new MojoExecutionException( "checkout failed.", ex );
         }
-    }
-    
-    private File getArtifactFile( Artifact artifact ) throws MojoExecutionException
-    {
-        ArtifactRequest request = new ArtifactRequest();
-        
-        artifact.getArtifactHandler().getExtension();
-        request.setArtifact( new DefaultArtifact( artifact.getGroupId(), artifact.getArtifactId(),
-                                                  artifact.getArtifactHandler().getExtension(),
-                                                  artifact.getBaseVersion() ) );
-        request.setRepositories( remoteRepos );
-        getLog().info( "Resolving artifact " + artifact + " from " + remoteRepos );
-        ArtifactResult result;
-        try
-        {
-            result = repoSystem.resolveArtifact( repoSession, request );
-        }
-        catch ( ArtifactResolutionException e )
-        {
-            throw new MojoExecutionException( e.getMessage(), e );
-        }
-        return result.getArtifact().getFile();
     }
 }
