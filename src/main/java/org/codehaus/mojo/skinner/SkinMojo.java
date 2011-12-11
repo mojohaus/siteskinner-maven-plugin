@@ -23,13 +23,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
+import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.metadata.ArtifactMetadataRetrievalException;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
 import org.apache.maven.artifact.repository.ArtifactRepository;
@@ -62,6 +67,13 @@ import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.sonatype.aether.RepositorySystem;
+import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.repository.RemoteRepository;
+import org.sonatype.aether.resolution.ArtifactRequest;
+import org.sonatype.aether.resolution.ArtifactResolutionException;
+import org.sonatype.aether.resolution.ArtifactResult;
+import org.sonatype.aether.util.artifact.DefaultArtifact;
 
 /**
  * Call <code>mvn skinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
@@ -89,6 +101,12 @@ public class SkinMojo
      * @parameter expression="${siteDeploy}" default-value="false"
      */
     private boolean siteDeploy;
+    
+    /**
+     * 
+     * @parameter expression="${customSkinTag}"
+     */
+    private String customSkinTag;
 
     /**
      * @parameter default-value="(,${project.version})"
@@ -189,14 +207,44 @@ public class SkinMojo
 
     /** @component */
     private Invoker invoker;
+    
+    /** 
+     * The entry point to Aether, i.e. the component doing all the work. 
+     * 
+     * @component 
+     */
+    private RepositorySystem repoSystem;
+
+    /**
+     * The current repository/network configuration of Maven.
+     *  
+     * @parameter default-value="${repositorySystemSession}"
+     * @readonly
+     */
+    private RepositorySystemSession repoSession;
+
+    /**
+     * The project's remote repositories to use for the resolution of plugins and their dependencies.
+     * 
+     * @parameter default-value="${project.remotePluginRepositories}" 
+     * @readonly
+     */
+    private List<RemoteRepository> remoteRepos;
 
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
         MavenProject releasedProject;
+        Artifact releasedArtifact;
         try
         {
-            releasedProject = resolveProject( releasedVersion );
+            releasedArtifact = resolveArtifact( releasedVersion );
+            MavenProject externalProject =
+                mavenProjectBuilder.buildFromRepository( releasedArtifact, remoteRepositories, localRepository );
+
+            fetchSources( workingDirectory, externalProject );
+
+            releasedProject = mavenProjectBuilder.build( new File( workingDirectory, "pom.xml" ), localRepository, null );
         }
         catch ( ProjectBuildingException e )
         {
@@ -224,6 +272,11 @@ public class SkinMojo
                 DecorationModel currentModel =
                     siteTool.getDecorationModel( currentProject, reactorProjects, localRepository, remoteRepositories,
                                                  currentSiteDirectory, locale, getInputEncoding(), getOutputEncoding() );
+                
+                if ( currentModel.getSkin() == null )
+                {
+                    throw new MojoFailureException( "No skin defined in the current 'site.xml', can't apply a new skin on the old site." );
+                }
 
                 File releasedSiteXml =
                     siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
@@ -233,9 +286,49 @@ public class SkinMojo
                 {
                     releasedModel = reader.read( new FileInputStream( releasedSiteXml ) );
                 }
+                else
+                {
+                    releasedModel = new DecorationModel();
+                }
                 releasedModel.setSkin( currentModel.getSkin() );
                 
                 Xpp3Dom mergedCustom  = Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
+                
+                
+                String skinTag;
+                if ( customSkinTag != null )
+                {
+                    skinTag = customSkinTag;
+                }
+                else 
+                {
+                    skinTag = StringUtils.stripStart( currentModel.getSkin().getArtifactId(), "maven-" );
+                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );    
+                }
+                
+                if( mergedCustom.getChild( skinTag ) == null )
+                {
+                    mergedCustom.addChild( new Xpp3Dom( skinTag ) );
+                }
+                
+                Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
+                
+                //Use the modified-date from the first entry of the jar as releaseDate
+                JarFile jarFile = new JarFile( getArtifactFile( releasedArtifact ) );
+                JarEntry entry = jarFile.entries().nextElement();
+                
+                Date releaseDate = new Date( entry.getTime() );
+                String publishDateFormat;
+                if ( releasedModel.getPublishDate() != null )
+                {
+                    publishDateFormat = releasedModel.getPublishDate().getFormat();
+                }
+                else
+                {
+                    publishDateFormat = new PublishDate().getFormat();   
+                }
+                publishDateChild.setValue( new SimpleDateFormat( publishDateFormat ).format( releaseDate ) );
+                mergedCustom.getChild( skinTag ).addChild( publishDateChild );
                 releasedModel.setCustom( mergedCustom );
 
                 writer.write( new FileOutputStream( releasedSiteXml ), releasedModel );
@@ -282,19 +375,6 @@ public class SkinMojo
         return (Xpp3Dom) sitePlugin.getConfiguration();
     }
 
-    private MavenProject resolveProject( String versionSpec )
-        throws MojoFailureException, MojoExecutionException, ProjectBuildingException
-    {
-        MavenProject result;
-        Artifact artifact = resolveArtifact( versionSpec );
-        MavenProject externalProject =
-            mavenProjectBuilder.buildFromRepository( artifact, remoteRepositories, localRepository );
-
-        fetchSources( workingDirectory, externalProject );
-
-        result = mavenProjectBuilder.build( new File( workingDirectory, "pom.xml" ), localRepository, null );
-        return result;
-    }
 
     private String getConnection( MavenProject mavenProject )
         throws MojoFailureException
@@ -356,6 +436,7 @@ public class SkinMojo
                     previousArtifact.selectVersion( version.toString() );
                 }
             }
+            
         }
         catch ( OverConstrainedVersionException e1 )
         {
@@ -377,7 +458,7 @@ public class SkinMojo
 
         return previousArtifact;
     }
-
+    
     private void filterSnapshots( List<ArtifactVersion> versions )
     {
         for ( Iterator<ArtifactVersion> versionIterator = versions.iterator(); versionIterator.hasNext(); )
@@ -417,5 +498,27 @@ public class SkinMojo
         {
             throw new MojoExecutionException( "checkout failed.", ex );
         }
+    }
+    
+    private File getArtifactFile( Artifact artifact ) throws MojoExecutionException
+    {
+        ArtifactRequest request = new ArtifactRequest();
+        
+        artifact.getArtifactHandler().getExtension();
+        request.setArtifact( new DefaultArtifact( artifact.getGroupId(), artifact.getArtifactId(),
+                                                  artifact.getArtifactHandler().getExtension(),
+                                                  artifact.getBaseVersion() ) );
+        request.setRepositories( remoteRepos );
+        getLog().info( "Resolving artifact " + artifact + " from " + remoteRepos );
+        ArtifactResult result;
+        try
+        {
+            result = repoSystem.resolveArtifact( repoSession, request );
+        }
+        catch ( ArtifactResolutionException e )
+        {
+            throw new MojoExecutionException( e.getMessage(), e );
+        }
+        return result.getArtifact().getFile();
     }
 }
