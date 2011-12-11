@@ -1,0 +1,27 @@
+Usage
+
+  This plugin has been written to be able to apply a new skin on deployed sites of Maven Projects.
+  
+  Before you begin be sure that the current project already uses the new skin.
+  
+  * The plugin will look for the most recent deployed version of the project. From this version the pom is read to get the scm-information.
+  
+  * The project is checked out under <<<target/skinner>>>. Next the skin and the custom-sections from the site.xml of the current project are merged with the checked out project.
+  
+  * Now we can regenerate the site. The plugin will call a <<<mvn site>>> on this project. <Et voil\340>, we have the old content with a new skin.
+  
+  * If you have verified the site under <<<target/skinner/target/site>>> you can deploy it by a simply <<<mvn site-deploy>>> from <<<target/skinner>>>.
+  
+  []
+  
+  This plugin supports locales and multi-module projects (the checkout will only be done on the root of the project).
+  
+Command line options
+
+  The skinner plugin has only a few options:
+  
+  * <<<siteDeploy>>> (default: <<false>>): If this value is set to true the re-skinned site will immediately be deployed.
+  
+  * <<<customSkinTag>>> : By default this is calculated based on the artefactId: <<<maven-fluido-skin>>> will become <<<fluidoSkin>>>.
+  
+  * <<<forceCheckout>>> (default: <<false>>): By setting this value to <<<true>>> a clean checkout is done instead of an update.   
