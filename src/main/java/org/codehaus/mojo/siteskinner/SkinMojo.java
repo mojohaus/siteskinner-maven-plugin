@@ -71,8 +71,8 @@ import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
- * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
- * add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
+ * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it
+ * will add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
  * <code>mvn site</code> on the checked out project. Now you can verify the pages and run a <code>mvn site-deploy</code>
  * on the checked out project.
  * 
@@ -91,14 +91,13 @@ public class SkinMojo
      * @parameter expression="${forceCheckout}" default-value="false"
      */
     private boolean forceCheckout;
-    
+
     /**
      * @parameter expression="${siteDeploy}" default-value="false"
      */
     private boolean siteDeploy;
-    
+
     /**
-     * 
      * @parameter expression="${customSkinTag}"
      */
     private String customSkinTag;
@@ -196,7 +195,7 @@ public class SkinMojo
 
     /** @component */
     private ArtifactFactory factory;
-    
+
     /** @component */
     private ArtifactResolver resolver;
 
@@ -205,7 +204,7 @@ public class SkinMojo
 
     /** @component */
     private Invoker invoker;
-    
+
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -219,7 +218,8 @@ public class SkinMojo
 
             fetchSources( workingDirectory, externalProject );
 
-            releasedProject = mavenProjectBuilder.build( new File( workingDirectory, "pom.xml" ), localRepository, null );
+            releasedProject =
+                mavenProjectBuilder.build( new File( workingDirectory, "pom.xml" ), localRepository, null );
         }
         catch ( ProjectBuildingException e )
         {
@@ -246,15 +246,17 @@ public class SkinMojo
             {
                 DecorationModel currentModel =
                     siteTool.getDecorationModel( currentProject, reactorProjects, localRepository, remoteRepositories,
-                                                 currentSiteDirectory, locale, getInputEncoding(), getOutputEncoding() );
-                
+                                                 currentSiteDirectory, locale, getInputEncoding(), 
+                                                 getOutputEncoding() );
+
                 if ( currentModel.getSkin() == null )
                 {
-                    throw new MojoFailureException( "No skin defined in the current 'site.xml', can't apply a new skin on the old site." );
+                    throw new MojoFailureException(
+                                "No skin defined in the current 'site.xml', can't apply a new skin on the old site." );
                 }
 
                 File releasedSiteXml =
-                    siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
+                  siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
 
                 DecorationModel releasedModel = null;
                 if ( releasedSiteXml.exists() )
@@ -266,28 +268,28 @@ public class SkinMojo
                     releasedModel = new DecorationModel();
                 }
                 releasedModel.setSkin( currentModel.getSkin() );
-                
-                Xpp3Dom mergedCustom  = Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
-                
-                
+
+                Xpp3Dom mergedCustom =
+                  Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
+
                 String skinTag;
                 if ( customSkinTag != null )
                 {
                     skinTag = customSkinTag;
                 }
-                else 
+                else
                 {
                     skinTag = StringUtils.stripStart( currentModel.getSkin().getArtifactId(), "maven-" );
-                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );    
+                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );
                 }
-                
-                if( mergedCustom.getChild( skinTag ) == null )
+
+                if ( mergedCustom.getChild( skinTag ) == null )
                 {
                     mergedCustom.addChild( new Xpp3Dom( skinTag ) );
                 }
-                
+
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
-                
+
                 try
                 {
                     resolver.resolve( releasedArtifact, remoteRepositories, localRepository );
@@ -300,11 +302,11 @@ public class SkinMojo
                 {
                     throw new MojoExecutionException( e.getMessage() );
                 }
-                
-                //Use the modified-date from the first entry of the jar as releaseDate
+
+                // Use the modified-date from the first entry of the jar as releaseDate
                 JarFile jarFile = new JarFile( releasedArtifact.getFile() );
                 JarEntry entry = jarFile.entries().nextElement();
-                
+
                 Date releaseDate = new Date( entry.getTime() );
                 String publishDateFormat;
                 if ( releasedModel.getPublishDate() != null )
@@ -313,7 +315,7 @@ public class SkinMojo
                 }
                 else
                 {
-                    publishDateFormat = new PublishDate().getFormat();   
+                    publishDateFormat = new PublishDate().getFormat();
                 }
                 publishDateChild.setValue( new SimpleDateFormat( publishDateFormat ).format( releaseDate ) );
                 mergedCustom.getChild( skinTag ).addChild( publishDateChild );
@@ -357,12 +359,11 @@ public class SkinMojo
         Plugin sitePlugin = (Plugin) releasedProject.getBuild().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         if ( sitePlugin == null )
         {
-            sitePlugin =
-                (Plugin) releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+            sitePlugin = (Plugin) 
+               releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
         return (Xpp3Dom) sitePlugin.getConfiguration();
     }
-
 
     private String getConnection( MavenProject mavenProject )
         throws MojoFailureException
@@ -424,7 +425,7 @@ public class SkinMojo
                     previousArtifact.selectVersion( version.toString() );
                 }
             }
-            
+
         }
         catch ( OverConstrainedVersionException e1 )
         {
@@ -446,7 +447,7 @@ public class SkinMojo
 
         return previousArtifact;
     }
-    
+
     private void filterSnapshots( List<ArtifactVersion> versions )
     {
         for ( Iterator<ArtifactVersion> versionIterator = versions.iterator(); versionIterator.hasNext(); )
@@ -473,13 +474,15 @@ public class SkinMojo
 
                 getLog().info( "Performing checkout to " + checkoutDir );
 
-                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() ).checkout( checkoutDir.getPath() );
+                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() )
+                    .checkout( checkoutDir.getPath() );
             }
             else
             {
                 getLog().info( "Performing update to " + checkoutDir );
 
-                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() ).update( checkoutDir.getPath() );
+                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() )
+                    .update( checkoutDir.getPath() );
             }
         }
         catch ( Exception ex )
