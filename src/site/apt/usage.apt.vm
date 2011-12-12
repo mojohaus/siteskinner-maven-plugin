@@ -4,13 +4,15 @@ Usage
   
   Before you begin be sure that the current project already uses the new skin.
   
+  When you execute <<<siteskinner:skin>>> the following steps are taken:
+  
   * The plugin will look for the most recent deployed version of the project. From this version the pom is read to get the scm-information.
   
-  * The project is checked out under <<<target/skinner>>>. Next the skin and the custom-sections from the site.xml of the current project are merged with the checked out project.
+  * The project is checked out under <<<target/siteskinner>>>. Next the skin and the custom-sections from the site.xml of the current project are merged with the checked out project.
   
   * Now we can regenerate the site. The plugin will call a <<<mvn site>>> on this project. <Et voil\340>, we have the old content with a new skin.
   
-  * If you have verified the site under <<<target/skinner/target/site>>> you can deploy it by a simply <<<mvn site-deploy>>> from <<<target/skinner>>>.
+  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a simply <<<mvn site-deploy>>> from <<<target/siteskinner>>>.
   
   []
   

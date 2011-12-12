@@ -1,4 +1,4 @@
-package org.codehaus.mojo.skinner;
+package org.codehaus.mojo.siteskinner;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -71,7 +71,7 @@ import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
- * Call <code>mvn skinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
+ * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it will
  * add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
  * <code>mvn site</code> on the checked out project. Now you can verify the pages and run a <code>mvn site-deploy</code>
  * on the checked out project.
@@ -112,7 +112,7 @@ public class SkinMojo
     /**
      * The working directory for this plugin.
      * 
-     * @parameter default-value="${project.build.directory}/skinner"
+     * @parameter default-value="${project.build.directory}/siteskinner"
      * @readonly
      */
     private File workingDirectory;
@@ -170,7 +170,7 @@ public class SkinMojo
     /**
      * The local repository where the artifacts are located.
      * 
-     * @parameter expression="${localRepository}"
+     * @parameter default-value="${localRepository}"
      * @readonly
      * @required
      */
@@ -179,7 +179,7 @@ public class SkinMojo
     /**
      * The remote repositories where artifacts are located.
      * 
-     * @parameter expression="${project.remoteArtifactRepositories}"
+     * @parameter default-value="${project.remoteArtifactRepositories}"
      * @readonly
      * @required
      */

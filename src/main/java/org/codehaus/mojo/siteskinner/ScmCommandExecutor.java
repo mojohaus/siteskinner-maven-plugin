@@ -1,4 +1,4 @@
-package org.codehaus.mojo.skinner;
+package org.codehaus.mojo.siteskinner;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
