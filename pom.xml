@@ -19,7 +19,13 @@
     <mavenVersion>2.0.6</mavenVersion>
     <scmVersion>1.6</scmVersion>
   </properties>
-  
+
+  <scm>
+    <connection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</connection>
+    <developerConnection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
+    <url>http://fisheye.codehaus.org/browse/mojo/trunk/mojo/siteskinner-maven-plugin</url>
+  </scm>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.maven</groupId>
