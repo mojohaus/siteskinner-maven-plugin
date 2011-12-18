@@ -97,10 +97,10 @@ public class SkinMojo
      */
     private boolean siteDeploy;
 
-    /**
-     * @parameter expression="${customSkinTag}"
-     */
-    private String customSkinTag;
+//    /**
+//     * @parameter expression="${customSkinTag}"
+//     */
+//    private String customSkinTag;
 
     /**
      * @parameter default-value="(,${project.version})"
@@ -272,21 +272,21 @@ public class SkinMojo
                 Xpp3Dom mergedCustom =
                   Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
 
-                String skinTag;
-                if ( customSkinTag != null )
-                {
-                    skinTag = customSkinTag;
-                }
-                else
-                {
-                    skinTag = StringUtils.stripStart( currentModel.getSkin().getArtifactId(), "maven-" );
-                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );
-                }
-
-                if ( mergedCustom.getChild( skinTag ) == null )
-                {
-                    mergedCustom.addChild( new Xpp3Dom( skinTag ) );
-                }
+//                String skinTag;
+//                if ( customSkinTag != null )
+//                {
+//                    skinTag = customSkinTag;
+//                }
+//                else
+//                {
+//                    skinTag = StringUtils.stripStart( currentModel.getSkin().getArtifactId(), "maven-" );
+//                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );
+//                }
+//
+//                if ( mergedCustom.getChild( skinTag ) == null )
+//                {
+//                    mergedCustom.addChild( new Xpp3Dom( skinTag ) );
+//                }
 
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
 
@@ -318,7 +318,7 @@ public class SkinMojo
                     publishDateFormat = new PublishDate().getFormat();
                 }
                 publishDateChild.setValue( new SimpleDateFormat( publishDateFormat ).format( releaseDate ) );
-                mergedCustom.getChild( skinTag ).addChild( publishDateChild );
+                mergedCustom.addChild( publishDateChild );
                 releasedModel.setCustom( mergedCustom );
 
                 writer.write( new FileOutputStream( releasedSiteXml ), releasedModel );
