@@ -228,14 +228,14 @@ public class SkinMojo
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
         String releasedSiteDirectory =
-            releasedConfig.getChild( "siteDirectory" ) == null ? "src/site"
+            releasedConfig == null || releasedConfig.getChild( "siteDirectory" ) == null ? "src/site"
                             : releasedConfig.getChild( "siteDirectory" ).getValue();
         String releasedLocales =
-            releasedConfig.getChild( "locales" ) == null ? null : releasedConfig.getChild( "locales" ).getValue();
+            releasedConfig == null || releasedConfig.getChild( "locales" ) == null ? null : releasedConfig.getChild( "locales" ).getValue();
 
         Xpp3Dom currentConfig = getSitePluginConfiguration( currentProject );
         String currentSiteDirectory =
-            currentConfig.getChild( "siteDirectory" ) == null ? "src/site"
+            currentConfig == null || currentConfig.getChild( "siteDirectory" ) == null ? "src/site"
                             : currentConfig.getChild( "siteDirectory" ).getValue();
         try
         {
