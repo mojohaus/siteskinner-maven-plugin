@@ -261,7 +261,7 @@ public class SkinMojo
                 DecorationModel releasedModel = null;
                 if ( releasedSiteXml.exists() )
                 {
-                    releasedModel = reader.read( new FileInputStream( releasedSiteXml ) );
+                    releasedModel = reader.read( new FileInputStream( releasedSiteXml ), false );
                 }
                 else
                 {
