@@ -271,6 +271,12 @@ public class SkinMojo
 
                 Xpp3Dom mergedCustom =
                   Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
+                
+                if ( mergedCustom == null )
+                {
+                    mergedCustom = new Xpp3Dom( "custom" );
+                }
+                
 
 //                String skinTag;
 //                if ( customSkinTag != null )
