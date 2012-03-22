@@ -46,7 +46,7 @@
 
   <scm>
     <connection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</connection>
-    <developerConnection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
+    <developerConnection>scm:svn:https://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
     <url>https://fisheye.codehaus.org/browse/mojo/trunk/mojo/siteskinner-maven-plugin</url>
   </scm>
 
