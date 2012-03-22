@@ -205,6 +205,7 @@ public class SkinMojo
     /** @component */
     private Invoker invoker;
 
+    /** {@inheritDoc} */
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -230,8 +231,8 @@ public class SkinMojo
         String releasedSiteDirectory =
             releasedConfig == null || releasedConfig.getChild( "siteDirectory" ) == null ? "src/site"
                             : releasedConfig.getChild( "siteDirectory" ).getValue();
-        String releasedLocales =
-            releasedConfig == null || releasedConfig.getChild( "locales" ) == null ? null : releasedConfig.getChild( "locales" ).getValue();
+        String releasedLocales = ( releasedConfig == null || releasedConfig.getChild( "locales" ) == null 
+            ? null : releasedConfig.getChild( "locales" ).getValue() );
 
         Xpp3Dom currentConfig = getSitePluginConfiguration( currentProject );
         String currentSiteDirectory =
