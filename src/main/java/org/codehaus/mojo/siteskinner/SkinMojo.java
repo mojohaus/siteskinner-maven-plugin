@@ -93,6 +93,9 @@ public class SkinMojo
     private boolean forceCheckout;
 
     /**
+     * If {@code false} the plugin should only generate the site, 
+     * else if {@code true} the site should be published immediately too.
+     * 
      * @parameter expression="${siteDeploy}" default-value="false"
      */
     private boolean siteDeploy;
