@@ -8,11 +8,13 @@ Usage
   
   * The plugin will look for the most recent deployed version of the project. From this version the pom is read to get the scm-information.
   
-  * The project is checked out under <<<target/siteskinner>>>. Next the skin and the custom-sections from the site.xml of the current project are merged with the checked out project.
+  * The sources of this version will be checked out under <<<target/siteskinner>>>. 
   
-  * Now we can regenerate the site. The plugin will call a <<<mvn site>>> on this project. <Et voil\340>, we have the old content with a new skin.
+  * The skin and the custom-section of the site.xml of the current project are merged with the checked out sources.
   
-  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a simply <<<mvn site-deploy>>> from <<<target/siteskinner>>>.
+  * The plugin will call <<<mvn site>>> on the checked out project. <Et voil\340>, we have the old content with a new skin.
+  
+  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a <<<mvn site-deploy>>> from <<<target/siteskinner>>>.
   
   []
   
