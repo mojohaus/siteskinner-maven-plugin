@@ -238,24 +238,28 @@ public class SkinMojo
         //MOJO-1825: verify site-plugin-version with maven-version
         ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
         ArtifactVersion mavenVersion = getMavenVersion();
-        try
+        
+        if ( sitePluginVersion != null )
         {
-            getLog().debug( "sitePluginVersion: " + sitePluginVersion);
-            getLog().debug( "mavenVersion: " + mavenVersion);
-            if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion ) 
-                            && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) ) 
+            try
             {
-                throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 2.x"  );
+                if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion )
+                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) )
+                {
+                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
+                        + " can only be executed with Maven 2.x" );
+                }
+                else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion )
+                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
+                {
+                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
+                        + " can only be executed with Maven 3.x+" );
+                }
             }
-            else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion ) 
-                            && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
+            catch ( InvalidVersionSpecificationException e )
             {
-                throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 3.x+"  );
+                throw new MojoFailureException( e.getMessage() );
             }
-        }
-        catch ( InvalidVersionSpecificationException e )
-        {
-            throw new MojoFailureException( e.getMessage() );
         }
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
