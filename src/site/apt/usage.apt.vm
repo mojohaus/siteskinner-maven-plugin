@@ -14,7 +14,7 @@ Usage
   
   * The plugin will call <<<mvn site>>> on the checked out project. <Et voil\340>, we have the old content with a new skin.
   
-  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a <<<mvn site-deploy>>> from <<<target/siteskinner>>>.
+  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a <<<mvn site:deploy>>> from <<<target/siteskinner>>>.
   
   []
   
