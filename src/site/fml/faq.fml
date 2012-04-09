@@ -29,5 +29,13 @@ under the License.
        <p>The easiest way to solve this is to add/override the maven-checkstyle-plugin version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
      </answer>
    </faq>
+   <faq id="maven_changes_plugin">
+     <question>The maven-changes-plugin caused the skinning to fail. What do I have to do?</question>
+     <answer>
+       <p>Sometimes a NPE occurs if the maven-changes-plugin tries to download a JIRA report.</p>
+       <p>The plugin fails to parse the XML returned by a newer version of JIRA.</p>
+       <p>The easiest way to solve this is to add/override the maven-changes-plugin version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
+     </answer>
+   </faq>
  </part>
 </faqs>
