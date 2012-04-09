@@ -41,6 +41,7 @@ import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
 import org.apache.maven.artifact.resolver.ArtifactResolutionException;
 import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.artifact.versioning.VersionRange;
@@ -50,6 +51,7 @@ import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
 import org.apache.maven.doxia.tools.SiteToolException;
+import org.apache.maven.execution.RuntimeInformation;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -186,6 +188,9 @@ public class SkinMojo
      * @required
      */
     private List<ArtifactRepository> remoteRepositories;
+    
+    /** @component */
+    private RuntimeInformation runtimeInformation;
 
     /** @component */
     private MavenProjectBuilder mavenProjectBuilder;
@@ -228,6 +233,29 @@ public class SkinMojo
         catch ( ProjectBuildingException e )
         {
             throw new MojoExecutionException( e.getMessage() );
+        }
+        
+        //MOJO-1825: verify site-plugin-version with maven-version
+        ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
+        ArtifactVersion mavenVersion = getMavenVersion();
+        try
+        {
+            getLog().debug( "sitePluginVersion: " + sitePluginVersion);
+            getLog().debug( "mavenVersion: " + mavenVersion);
+            if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion ) 
+                            && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) ) 
+            {
+                throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 2.x"  );
+            }
+            else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion ) 
+                            && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
+            {
+                throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 3.x+"  );
+            }
+        }
+        catch ( InvalidVersionSpecificationException e )
+        {
+            throw new MojoFailureException( e.getMessage() );
         }
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
@@ -373,6 +401,28 @@ public class SkinMojo
                releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
         return (Xpp3Dom) sitePlugin.getConfiguration();
+    }
+    
+    private ArtifactVersion getSitePluginVersion( MavenProject releasedProject )
+    {
+        ArtifactVersion sitePluginVersion = null;
+        Plugin sitePlugin = (Plugin) releasedProject.getBuild().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+        if ( sitePlugin == null )
+        {
+            sitePlugin = (Plugin) 
+               releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+        }
+
+        if( sitePlugin != null && sitePlugin.getVersion() != null )
+        {
+            sitePluginVersion = new DefaultArtifactVersion( sitePlugin.getVersion() ); 
+        }
+        return sitePluginVersion;
+    }
+    
+    private ArtifactVersion getMavenVersion()
+    {
+       return runtimeInformation.getApplicationVersion();   
     }
 
     private String getConnection( MavenProject mavenProject )
