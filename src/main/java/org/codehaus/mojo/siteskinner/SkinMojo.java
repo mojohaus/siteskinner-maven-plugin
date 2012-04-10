@@ -303,6 +303,14 @@ public class SkinMojo
                 {
                     releasedModel = new DecorationModel();
                 }
+                
+                // MOJO-1827: Copy all layout-specific content
+                releasedModel.setBannerLeft( currentModel.getBannerLeft() );
+                releasedModel.setBannerRight( currentModel.getBannerRight() );
+                releasedModel.setGoogleAnalyticsAccountId( currentModel.getGoogleAnalyticsAccountId() );
+                releasedModel.setName( currentModel.getName() );
+                releasedModel.setPoweredBy( currentModel.getPoweredBy() );
+                releasedModel.setPublishDate( currentModel.getPublishDate() );
                 releasedModel.setSkin( currentModel.getSkin() );
 
                 Xpp3Dom mergedCustom =
