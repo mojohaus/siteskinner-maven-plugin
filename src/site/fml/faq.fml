@@ -26,7 +26,7 @@ under the License.
        <p>This means you're using a newer checkstyle configuration file which is not supported by the used version of the maven-checkstyle-plugin.
           This can happen if the <code>configLocation</code> refers to file under version control.
        </p>
-       <p>The easiest way to solve this is to add/override the maven-checkstyle-plugin version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
+       <p>The easiest way to solve this is to add/override the <a href="http://maven.apache.org/plugins/maven-checkstyle-plugin/">maven-checkstyle-plugin</a> version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
      </answer>
    </faq>
    <faq id="maven_changes_plugin">
@@ -34,7 +34,7 @@ under the License.
      <answer>
        <p>Sometimes a NPE occurs if the maven-changes-plugin tries to download a JIRA report.</p>
        <p>The plugin fails to parse the XML returned by a newer version of JIRA.</p>
-       <p>The easiest way to solve this is to add/override the maven-changes-plugin version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
+       <p>The easiest way to solve this is to add/override the <a href="http://maven.apache.org/plugins/maven-changes-plugin/">maven-changes-plugin</a> version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
      </answer>
    </faq>
  </part>
