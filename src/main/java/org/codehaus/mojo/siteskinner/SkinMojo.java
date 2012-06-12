@@ -339,10 +339,12 @@ public class SkinMojo
 //                }
 
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
+                
+                long preResolveDate = System.currentTimeMillis();
 
                 try
                 {
-                    resolver.resolve( releasedArtifact, remoteRepositories, localRepository );
+                    resolver.resolveAlways( releasedArtifact, remoteRepositories, localRepository );
                 }
                 catch ( ArtifactResolutionException e )
                 {
@@ -353,11 +355,23 @@ public class SkinMojo
                     throw new MojoExecutionException( e.getMessage() );
                 }
 
-                // Use the modified-date from the first entry of the jar as releaseDate
-                JarFile jarFile = new JarFile( releasedArtifact.getFile() );
-                JarEntry entry = jarFile.entries().nextElement();
+                long deployDate;
+                if( releasedArtifact.getFile().lastModified() < preResolveDate )
+                {
+                    //we can assume that the ArtifactResolver changed the lastModified value
+                    deployDate = releasedArtifact.getFile().lastModified();
+                    getLog().debug( "lastModified of " + releasedArtifact + " is " + new Date( deployDate ) );
+                }
+                else
+                {
+                 // Use the modified-date from the first entry of the jar as releaseDate
+                    JarFile jarFile = new JarFile( releasedArtifact.getFile() );
+                    JarEntry entry = jarFile.entries().nextElement();   
+                    
+                    deployDate = entry.getTime();
+                }
 
-                Date releaseDate = new Date( entry.getTime() );
+                Date releaseDate = new Date( deployDate );
                 String publishDateFormat;
                 if ( releasedModel.getPublishDate() != null )
                 {
