@@ -68,6 +68,7 @@ import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
+import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -101,11 +102,6 @@ public class SkinMojo
      * @parameter expression="${siteDeploy}" default-value="false"
      */
     private boolean siteDeploy;
-
-//    /**
-//     * @parameter expression="${customSkinTag}"
-//     */
-//    private String customSkinTag;
 
     /**
      * @parameter default-value="(,${project.version})"
@@ -161,7 +157,7 @@ public class SkinMojo
      */
     private String getOutputEncoding()
     {
-        return ( outputEncoding == null ) ? ReaderFactory.UTF_8 : outputEncoding;
+        return ( outputEncoding == null ) ? WriterFactory.UTF_8 : outputEncoding;
     }
 
     /**
@@ -321,23 +317,6 @@ public class SkinMojo
                     mergedCustom = new Xpp3Dom( "custom" );
                 }
                 
-
-//                String skinTag;
-//                if ( customSkinTag != null )
-//                {
-//                    skinTag = customSkinTag;
-//                }
-//                else
-//                {
-//                    skinTag = StringUtils.stripStart( currentModel.getSkin().getArtifactId(), "maven-" );
-//                    skinTag = StringUtils.uncapitalise( StringUtils.removeAndHump( skinTag, "-" ) );
-//                }
-//
-//                if ( mergedCustom.getChild( skinTag ) == null )
-//                {
-//                    mergedCustom.addChild( new Xpp3Dom( skinTag ) );
-//                }
-
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
                 
                 long preResolveDate = System.currentTimeMillis();
@@ -360,7 +339,6 @@ public class SkinMojo
                 {
                     //we can assume that the ArtifactResolver changed the lastModified value
                     deployDate = releasedArtifact.getFile().lastModified();
-                    getLog().debug( "lastModified of " + releasedArtifact + " is " + new Date( deployDate ) );
                 }
                 else
                 {
