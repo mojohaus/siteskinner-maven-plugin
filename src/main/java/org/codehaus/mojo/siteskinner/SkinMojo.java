@@ -231,32 +231,7 @@ public class SkinMojo
             throw new MojoExecutionException( e.getMessage() );
         }
         
-        //MOJO-1825: verify site-plugin-version with maven-version
-        ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
-        ArtifactVersion mavenVersion = getMavenVersion();
-        
-        if ( sitePluginVersion != null )
-        {
-            try
-            {
-                if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) )
-                {
-                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
-                        + " can only be executed with Maven 2.x" );
-                }
-                else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
-                {
-                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
-                        + " can only be executed with Maven 3.x+" );
-                }
-            }
-            catch ( InvalidVersionSpecificationException e )
-            {
-                throw new MojoFailureException( e.getMessage() );
-            }
-        }
+        verifyVersionCompatibility( releasedProject );
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
         String releasedSiteDirectory =
@@ -393,6 +368,44 @@ public class SkinMojo
         catch ( MavenInvocationException e )
         {
             throw new MojoExecutionException( e.getMessage() );
+        }
+    }
+
+    /**
+     * Verify is the Maven version can be used with the specified maven-site-plugin version, 
+     *   since the maven-site-plugin is not compatible with every Maven version.
+     * 
+     * @param releasedProject
+     * @throws MojoFailureException
+     */
+    private void verifyVersionCompatibility( MavenProject releasedProject )
+        throws MojoFailureException
+    {
+        //MOJO-1825: verify site-plugin-version with maven-version
+        ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
+        ArtifactVersion mavenVersion = getMavenVersion();
+        
+        if ( sitePluginVersion != null )
+        {
+            try
+            {
+                if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion )
+                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) )
+                {
+                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
+                        + " can only be executed with Maven 2.x" );
+                }
+                else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion )
+                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
+                {
+                    throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
+                        + " can only be executed with Maven 3.x+" );
+                }
+            }
+            catch ( InvalidVersionSpecificationException e )
+            {
+                throw new MojoFailureException( e.getMessage() );
+            }
         }
     }
 
