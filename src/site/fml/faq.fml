@@ -32,10 +32,19 @@ under the License.
    <faq id="maven_changes_plugin">
      <question>The maven-changes-plugin caused the skinning to fail. What do I have to do?</question>
      <answer>
-       <p>Sometimes a NPE occurs if the maven-changes-plugin tries to download a JIRA report.</p>
+       <p>Sometimes a <code>NullPointerException</code> occurs if the maven-changes-plugin tries to download a JIRA report.</p>
        <p>The plugin fails to parse the XML returned by a newer version of JIRA.</p>
        <p>The easiest way to solve this is to add/override the <a href="http://maven.apache.org/plugins/maven-changes-plugin/">maven-changes-plugin</a> version in the reports-section of the <code>target/siteskinner/pom.xml</code></p>
      </answer>
    </faq>
+   <faq id="maven_site_plugin">
+     <question>A report caused the skinning to fail. What do I have to do?</question>
+     <answer>
+       <p>A <code>NoClassDefFoundError</code> can occur if the version of Maven is not compatable with the specified maven-site-plugin. 
+       Often you won't see this directly under the maven-site-plugin, but under one the reports.</p>
+       <p>You can either downgrade the version of <a href="http://maven.apache.org/download.html">Maven</a> (since it has been successfully deployed in the past) or upgrade the version of the <a href="http://maven.apache.org/plugins/maven-site-plugin/">maven-site-plugin</a>.</p>
+     </answer>
+   </faq>
+   
  </part>
 </faqs>
