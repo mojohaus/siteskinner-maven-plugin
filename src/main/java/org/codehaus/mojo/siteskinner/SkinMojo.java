@@ -95,6 +95,14 @@ public class SkinMojo
      * @parameter expression="${forceCheckout}" default-value="false"
      */
     private boolean forceCheckout;
+    
+    /**
+     * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items.
+     * Set to {@false} if you don't want to merge the body.
+     * 
+     * @parameter expression="${mergeBody}" default-value="true"
+     */
+    private boolean mergeBody;
 
     /**
      * If {@code false} the plugin should only generate the site, 
@@ -284,8 +292,8 @@ public class SkinMojo
                 releasedModel.setPoweredBy( currentModel.getPoweredBy() );
                 releasedModel.setPublishDate( currentModel.getPublishDate() );
                 releasedModel.setSkin( currentModel.getSkin() );
-                
-                if ( currentModel.getBody() != null )
+
+                if ( mergeBody && currentModel.getBody() != null )
                 {
                     if( releasedModel.getBody() == null )
                     {
@@ -295,7 +303,7 @@ public class SkinMojo
                     releasedModel.getBody().setFooter( currentModel.getBody().getFooter() );
                     releasedModel.getBody().setHead( currentModel.getBody().getHead() );
                     releasedModel.getBody().setLinks( currentModel.getBody().getLinks() );
-                }
+                }    
 
                 Xpp3Dom mergedCustom =
                   Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
