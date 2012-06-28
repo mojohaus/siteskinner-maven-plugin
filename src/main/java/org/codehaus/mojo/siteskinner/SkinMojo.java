@@ -45,6 +45,7 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.artifact.versioning.VersionRange;
+import org.apache.maven.doxia.site.decoration.Body;
 import org.apache.maven.doxia.site.decoration.DecorationModel;
 import org.apache.maven.doxia.site.decoration.PublishDate;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
@@ -283,6 +284,18 @@ public class SkinMojo
                 releasedModel.setPoweredBy( currentModel.getPoweredBy() );
                 releasedModel.setPublishDate( currentModel.getPublishDate() );
                 releasedModel.setSkin( currentModel.getSkin() );
+                
+                if ( currentModel.getBody() != null )
+                {
+                    if( releasedModel.getBody() == null )
+                    {
+                        releasedModel.setBody( new Body() );
+                    }
+                    releasedModel.getBody().setBreadcrumbs( currentModel.getBody().getBreadcrumbs() );
+                    releasedModel.getBody().setFooter( currentModel.getBody().getFooter() );
+                    releasedModel.getBody().setHead( currentModel.getBody().getHead() );
+                    releasedModel.getBody().setLinks( currentModel.getBody().getLinks() );
+                }
 
                 Xpp3Dom mergedCustom =
                   Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
