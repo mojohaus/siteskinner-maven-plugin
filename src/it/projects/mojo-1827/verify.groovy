@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml ') )
+def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml') )
 assert projectNode.bannerLeft
 assert projectNode.bannerRight
 assert projectNode.custom
