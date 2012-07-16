@@ -21,6 +21,7 @@ package org.codehaus.mojo.siteskinner;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -51,7 +52,6 @@ import org.apache.maven.doxia.site.decoration.PublishDate;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
-import org.apache.maven.doxia.tools.SiteToolException;
 import org.apache.maven.execution.RuntimeInformation;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
@@ -67,9 +67,8 @@ import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.ReaderFactory;
+import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.StringUtils;
-import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -134,40 +133,6 @@ public class SkinMojo
      * @readonly
      */
     private List<MavenProject> reactorProjects;
-
-    /**
-     * Specifies the input encoding.
-     * 
-     * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
-     */
-    private String inputEncoding;
-
-    /**
-     * Specifies the output encoding.
-     * 
-     * @parameter expression="${outputEncoding}" default-value="${project.reporting.outputEncoding}"
-     */
-    private String outputEncoding;
-
-    /**
-     * Gets the input files encoding.
-     * 
-     * @return The input files encoding, never <code>null</code>.
-     */
-    private String getInputEncoding()
-    {
-        return ( inputEncoding == null ) ? ReaderFactory.ISO_8859_1 : inputEncoding;
-    }
-
-    /**
-     * Gets the effective reporting output files encoding.
-     * 
-     * @return The effective reporting output file encoding, never <code>null</code>.
-     */
-    private String getOutputEncoding()
-    {
-        return ( outputEncoding == null ) ? WriterFactory.UTF_8 : outputEncoding;
-    }
 
     /**
      * @parameter default-value="${project}"
@@ -260,10 +225,15 @@ public class SkinMojo
 
             for ( Locale locale : siteTool.getAvailableLocales( releasedLocales ) )
             {
-                DecorationModel currentModel =
-                    siteTool.getDecorationModel( currentProject, reactorProjects, localRepository, remoteRepositories,
-                                                 currentSiteDirectory, locale, getInputEncoding(), 
-                                                 getOutputEncoding() );
+                File currentSiteXml =
+                    siteTool.getSiteDescriptorFromBasedir( currentSiteDirectory, currentProject.getBasedir(), locale );
+                
+                if ( !currentSiteXml.exists() )
+                {
+                    throw new MojoFailureException( "No 'site.xml' defined, can't apply a new skin on the old site." );
+                }
+                
+                DecorationModel currentModel = readDecorationModel( reader, currentSiteXml );
 
                 if ( currentModel.getSkin() == null )
                 {
@@ -277,10 +247,12 @@ public class SkinMojo
                 DecorationModel releasedModel = null;
                 if ( releasedSiteXml.exists() )
                 {
-                    releasedModel = reader.read( new FileInputStream( releasedSiteXml ), false );
+                    releasedModel = readDecorationModel( reader, releasedSiteXml );
                 }
                 else
                 {
+                    // already create folders to be sure we can write to this file
+                    releasedSiteXml.getParentFile().mkdirs();
                     releasedModel = new DecorationModel();
                 }
                 
@@ -288,10 +260,12 @@ public class SkinMojo
                 releasedModel.setBannerLeft( currentModel.getBannerLeft() );
                 releasedModel.setBannerRight( currentModel.getBannerRight() );
                 releasedModel.setGoogleAnalyticsAccountId( currentModel.getGoogleAnalyticsAccountId() );
+                releasedModel.setModelEncoding( currentModel.getModelEncoding() );
                 releasedModel.setName( currentModel.getName() );
                 releasedModel.setPoweredBy( currentModel.getPoweredBy() );
                 releasedModel.setPublishDate( currentModel.getPublishDate() );
                 releasedModel.setSkin( currentModel.getSkin() );
+                releasedModel.setVersion( currentModel.getVersion() );
 
                 if ( mergeBody && currentModel.getBody() != null )
                 {
@@ -359,12 +333,17 @@ public class SkinMojo
                 mergedCustom.addChild( publishDateChild );
                 releasedModel.setCustom( mergedCustom );
 
-                writer.write( new FileOutputStream( releasedSiteXml ), releasedModel );
+                FileOutputStream fileOutputStream = new FileOutputStream( releasedSiteXml );
+                try
+                {
+                    writer.write( fileOutputStream, releasedModel );
+                }
+                finally
+                {
+                    IOUtil.close( fileOutputStream );
+                }
+                
             }
-        }
-        catch ( SiteToolException e )
-        {
-            throw new MojoExecutionException( e.getMessage() );
         }
         catch ( IOException e )
         {
@@ -390,6 +369,22 @@ public class SkinMojo
         {
             throw new MojoExecutionException( e.getMessage() );
         }
+    }
+
+    private DecorationModel readDecorationModel( DecorationXpp3Reader reader, File currentSiteXml )
+        throws FileNotFoundException, IOException, XmlPullParserException
+    {
+        DecorationModel currentModel;
+        FileInputStream fileInputStream = new FileInputStream( currentSiteXml );
+        try
+        {
+            currentModel = reader.read( fileInputStream, false );
+        }
+        finally
+        {
+            IOUtil.close( fileInputStream );
+        }
+        return currentModel;
     }
 
     /**
@@ -468,7 +463,7 @@ public class SkinMojo
     {
         if ( mavenProject.getScm() == null )
         {
-            throw new MojoFailureException( "SCM Connection is not set in your pom.xml." );
+            throw new MojoFailureException( "SCM is not set in your pom.xml." );
         }
 
         String connection = mavenProject.getScm().getConnection();
