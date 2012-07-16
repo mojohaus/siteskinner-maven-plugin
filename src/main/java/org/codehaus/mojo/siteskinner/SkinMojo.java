@@ -126,15 +126,6 @@ public class SkinMojo
     private File workingDirectory;
 
     /**
-     * The reactor projects.
-     * 
-     * @parameter default-value="${reactorProjects}"
-     * @required
-     * @readonly
-     */
-    private List<MavenProject> reactorProjects;
-
-    /**
      * @parameter default-value="${project}"
      * @required
      * @readonly
