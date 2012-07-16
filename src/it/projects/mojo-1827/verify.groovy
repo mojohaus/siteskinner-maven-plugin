@@ -17,14 +17,14 @@
  * under the License.
  */
 def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml') )
-assert projectNode.bannerLeft
-assert projectNode.bannerRight
-assert projectNode.custom
-assert projectNode.publishDate
-assert projectNode.skin
-assert projectNode.version
+assert projectNode.bannerLeft.size() == 1
+assert projectNode.bannerRight.size() == 1
+assert projectNode.custom.size() == 1
+assert projectNode.publishDate.size() == 1
+assert projectNode.skin.size() == 1
+assert projectNode.version.size() == 1
 
-assert projectNode.body.breadcrumbs
-assert projectNode.body.footer
-assert projectNode.body.head
-assert projectNode.body.links
+assert projectNode.body.breadcrumbs.size() == 1
+assert projectNode.body.footer.size() == 1
+assert projectNode.body.head.size() == 1
+assert projectNode.body.links.size() == 1
