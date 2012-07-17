@@ -10,19 +10,20 @@
   </scm>
 
   <build>
-    <extensions>
-      <extension>
-        <groupId>org.apache.maven.scm</groupId>
-        <artifactId>maven-scm-provider-local</artifactId>
-        <version>1.7</version>
-      </extension>
-    </extensions>
     <pluginManagement>
       <plugins>
+        <!-- required for local scm-provider -->
         <plugin>
           <groupId>@project.groupId@</groupId>
           <artifactId>@project.artifactId@</artifactId>
           <version>@project.version@</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.scm</groupId>
+              <artifactId>maven-scm-provider-local</artifactId>
+              <version>1.7</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

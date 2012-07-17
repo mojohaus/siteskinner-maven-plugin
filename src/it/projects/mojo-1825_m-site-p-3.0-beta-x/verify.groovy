@@ -18,6 +18,4 @@
  */
 def log = new File( basedir, 'build.log')
 assert log.exists()
-// assert log.getText().contains( 'maven-site-plugin:3.0-beta-3 can only be executed with Maven 3.x' )
-// IMPORTANT: ITs fail when executed with Maven2 with the following exception: No such provider: 'local'
-// There must be a classloader issue here.
+assert log.getText().contains( 'maven-site-plugin:3.0-beta-3 can only be executed with Maven 3.x+' )
