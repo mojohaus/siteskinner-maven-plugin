@@ -1,0 +1,37 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>localhost</groupId>
+  <artifactId>mojo-1834</artifactId>
+  <version>1.0</version>
+  <packaging>pom</packaging>
+  
+  <scm>
+    <developerConnection>scm:local|../../../src/it/scm|mojo-1834-1.0</developerConnection>
+  </scm>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <!-- required for local scm-provider -->
+        <plugin>
+          <groupId>@project.groupId@</groupId>
+          <artifactId>@project.artifactId@</artifactId>
+          <version>@project.version@</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.scm</groupId>
+              <artifactId>maven-scm-provider-local</artifactId>
+              <version>1.7</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+  
+  <modules>
+    <module>mojo-1834-api</module>
+    <module>mojo-1834-impl</module>
+  </modules>
+</project>

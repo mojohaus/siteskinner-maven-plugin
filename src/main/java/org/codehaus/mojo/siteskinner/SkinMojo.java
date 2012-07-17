@@ -348,6 +348,7 @@ public class SkinMojo
         InvocationRequest request = new DefaultInvocationRequest();
         request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
         request.setPomFile( releasedProject.getFile() );
+        request.setShowErrors( true );
         try
         {
             InvocationResult invocationResult = invoker.execute( request );
