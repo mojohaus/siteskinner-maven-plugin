@@ -21,7 +21,6 @@ package org.codehaus.mojo.siteskinner;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -260,7 +259,7 @@ public class SkinMojo
 
                 if ( mergeBody && currentModel.getBody() != null )
                 {
-                    if( releasedModel.getBody() == null )
+                    if ( releasedModel.getBody() == null )
                     {
                         releasedModel.setBody( new Body() );
                     }
@@ -296,7 +295,7 @@ public class SkinMojo
                 }
 
                 long deployDate;
-                if( releasedArtifact.getFile().lastModified() < preResolveDate )
+                if ( releasedArtifact.getFile().lastModified() < preResolveDate )
                 {
                     //we can assume that the ArtifactResolver changed the lastModified value
                     deployDate = releasedArtifact.getFile().lastModified();
@@ -364,7 +363,7 @@ public class SkinMojo
     }
 
     private DecorationModel readDecorationModel( DecorationXpp3Reader reader, File currentSiteXml )
-        throws FileNotFoundException, IOException, XmlPullParserException
+        throws IOException, XmlPullParserException
     {
         DecorationModel currentModel;
         FileInputStream fileInputStream = new FileInputStream( currentSiteXml );
@@ -438,7 +437,7 @@ public class SkinMojo
                releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
 
-        if( sitePlugin != null && sitePlugin.getVersion() != null )
+        if ( sitePlugin != null && sitePlugin.getVersion() != null )
         {
             sitePluginVersion = new DefaultArtifactVersion( sitePlugin.getVersion() ); 
         }
