@@ -56,6 +56,9 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
@@ -77,11 +80,8 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  * will add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
  * <code>mvn site</code> on the checked out project. Now you can verify the pages and run a <code>mvn site-deploy</code>
  * on the checked out project.
- * 
- * @goal skin
- * @requiresDirectInvocation
- * @aggregator
  */
+@Mojo( name = "skin", requiresDirectInvocation = true, aggregator = true )
 public class SkinMojo
     extends AbstractMojo
 {
@@ -89,88 +89,73 @@ public class SkinMojo
 
     /**
      * Force a checkout instead of an update when the sources have already been checked out during a previous run.
-     * 
-     * @parameter expression="${forceCheckout}" default-value="false"
      */
+    @Parameter( property = "forceCheckout", defaultValue = "false" )
     private boolean forceCheckout;
     
     /**
      * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items.
      * Set to {@false} if you don't want to merge the body.
-     * 
-     * @parameter expression="${mergeBody}" default-value="true"
      */
+    @Parameter( property = "mergeBody", defaultValue = "true" )
     private boolean mergeBody;
 
     /**
      * If {@code false} the plugin should only generate the site, 
      * else if {@code true} the site should be published immediately too.
-     * 
-     * @parameter expression="${siteDeploy}" default-value="false"
      */
+    @Parameter( property = "siteDeploy", defaultValue = "false" )
     private boolean siteDeploy;
 
     /**
-     * @parameter default-value="(,${project.version})"
-     * @readonly
+     * Versionrange to calculate latest released version
      */
+    @Parameter( defaultValue = "(,${project.version})", readonly = true )
     private String releasedVersion;
 
     /**
      * The working directory for this plugin.
-     * 
-     * @parameter default-value="${project.build.directory}/siteskinner"
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.build.directory}/siteskinner", readonly = true )
     private File workingDirectory;
 
-    /**
-     * @parameter default-value="${project}"
-     * @required
-     * @readonly
-     */
+    @Component
     private MavenProject currentProject;
 
     /**
      * The local repository where the artifacts are located.
-     * 
-     * @parameter default-value="${localRepository}"
-     * @readonly
-     * @required
      */
+    @Parameter ( defaultValue="${localRepository}", readonly = true, required = true )
     private ArtifactRepository localRepository;
 
     /**
      * The remote repositories where artifacts are located.
-     * 
-     * @parameter default-value="${project.remoteArtifactRepositories}"
-     * @readonly
-     * @required
      */
+    @Parameter( defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true ) 
     private List<ArtifactRepository> remoteRepositories;
     
-    /** @component */
+    @Component
     private RuntimeInformation runtimeInformation;
 
-    /** @component */
+    @Component
     private MavenProjectBuilder mavenProjectBuilder;
 
-    /** @component */
+    @Component
     private ScmManager scmManager;
 
-    /** @component */
+    @Component
     private ArtifactMetadataSource metadataSource;
 
-    /** @component */
+    @Component
     private ArtifactFactory factory;
 
-    /** @component */
+    @Component
     private ArtifactResolver resolver;
 
-    /** @component */
+    @Component
     private SiteTool siteTool;
 
-    /** @component */
+    @Component
     private Invoker invoker;
 
     /** {@inheritDoc} */
