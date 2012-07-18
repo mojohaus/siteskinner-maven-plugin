@@ -7,7 +7,7 @@
   <packaging>pom</packaging>
   
   <scm>
-    <developerConnection>scm:local|../../../src/it/scm|mojo-1834-1.0</developerConnection>
+    <developerConnection>scm:local|../../../src/it/scm|${project.artifactId}-${project.version}</developerConnection>
   </scm>
 
   <modules>

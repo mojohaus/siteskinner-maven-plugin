@@ -5,7 +5,7 @@
   <version>1.0</version>
   
   <scm>
-    <developerConnection>scm:local|../../../src/it/scm|mojo-1855-1.0</developerConnection>
+    <developerConnection>scm:local|../../../src/it/scm|${project.artifactId}-${project.version}</developerConnection>
   </scm>
   
   <build>
