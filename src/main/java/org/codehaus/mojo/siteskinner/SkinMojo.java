@@ -78,7 +78,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 /**
  * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it
  * will add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
- * <code>mvn site</code> on the checked out project. Now you can verify the pages and run a <code>mvn site-deploy</code>
+ * <code>mvn site</code> on the checked out project. Now you can verify the pages and run <code>mvn site:deploy</code>
  * on the checked out project.
  */
 @Mojo( name = "skin", requiresDirectInvocation = true, aggregator = true )
