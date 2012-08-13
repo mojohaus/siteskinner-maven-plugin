@@ -51,6 +51,10 @@
     <developerConnection>scm:svn:https://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
     <url>https://fisheye.codehaus.org/browse/mojo/trunk/mojo/siteskinner-maven-plugin</url>
   </scm>
+  <issueManagement>
+    <system>JIRA</system>
+    <url>http://jira.codehaus.org/browse/MSITESKIN</url> 
+  </issueManagement>
 
   <dependencies>
     <dependency>
