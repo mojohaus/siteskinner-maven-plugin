@@ -125,7 +125,7 @@ public class SkinMojo
     /**
      * The local repository where the artifacts are located.
      */
-    @Parameter ( defaultValue="${localRepository}", readonly = true, required = true )
+    @Parameter( defaultValue = "${localRepository}", readonly = true, required = true )
     private ArtifactRepository localRepository;
 
     /**
