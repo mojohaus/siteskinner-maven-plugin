@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>siteskinner-maven-plugin</artifactId>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>SiteSkinner Maven Plugin</name>
@@ -46,9 +46,9 @@
   </properties>
 
   <scm>
-    <connection>scm:svn:http://svn.codehaus.org/mojo/tags/siteskinner-maven-plugin-1.0</connection>
-    <developerConnection>scm:svn:https://svn.codehaus.org/mojo/tags/siteskinner-maven-plugin-1.0</developerConnection>
-    <url>https://fisheye.codehaus.org/browse/mojo/tags/siteskinner-maven-plugin-1.0</url>
+    <connection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</connection>
+    <developerConnection>scm:svn:https://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
+    <url>https://fisheye.codehaus.org/browse/mojo/trunk/mojo/siteskinner-maven-plugin</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
