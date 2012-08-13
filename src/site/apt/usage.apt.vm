@@ -36,7 +36,7 @@ Command line options
   
   * <<<forceCheckout>>> (default: <<false>>): By setting this value to <<<true>>> a clean checkout is done instead of an update.   
 
-~~  * <<<customSkinTag>>> : By default this is calculated based on the artefactId: <<<maven-fluido-skin>>> will become <<<fluidoSkin>>>.
+  * <<<mergeBody>>> (default: <<true>>): By setting this value to <<<false>>> none of the body elements will be merged, so the original layout is preserved.   
   
 PublishDate support
 
