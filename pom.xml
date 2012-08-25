@@ -194,6 +194,9 @@
               </goals>
               <projectsDirectory>src/it/projects</projectsDirectory>
               <postBuildHookScript>verify</postBuildHookScript>
+              <pomExcludes>
+                <pomExclude>msiteskin-9*/pom.xml</pomExclude> <!-- MMOCKRM-4 -->
+              </pomExcludes>
             </configuration>
           </plugin>
           <plugin>

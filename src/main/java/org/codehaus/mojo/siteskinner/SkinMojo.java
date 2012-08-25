@@ -203,17 +203,14 @@ public class SkinMojo
                 File currentSiteXml =
                     siteTool.getSiteDescriptorFromBasedir( currentSiteDirectory, currentProject.getBasedir(), locale );
                 
-                if ( !currentSiteXml.exists() )
+                DecorationModel currentModel;
+                if ( currentSiteXml.exists() )
                 {
-                    throw new MojoFailureException( "No 'site.xml' defined, can't apply a new skin on the old site." );
+                    currentModel = readDecorationModel( reader, currentSiteXml );
                 }
-                
-                DecorationModel currentModel = readDecorationModel( reader, currentSiteXml );
-
-                if ( currentModel.getSkin() == null )
+                else
                 {
-                    throw new MojoFailureException(
-                                "No skin defined in the current 'site.xml', can't apply a new skin on the old site." );
+                    currentModel = new DecorationModel();
                 }
 
                 File releasedSiteXml =
@@ -230,6 +227,11 @@ public class SkinMojo
                     releasedSiteXml.getParentFile().mkdirs();
                     releasedModel = new DecorationModel();
                 }
+
+                // Ideally we would check if it is worth reskinning, but that requires a lot of checks:
+                // - A new skin, either directly or inherited from the parent
+                // - New model elements, either directly or inherited from the parent
+                // Right now it's not worth it to do all these checks
                 
                 // MOJO-1827: Copy all layout-specific content
                 releasedModel.setBannerLeft( currentModel.getBannerLeft() );
@@ -333,6 +335,8 @@ public class SkinMojo
         request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
         request.setPomFile( releasedProject.getFile() );
         request.setShowErrors( true );
+        
+        invoker.setLocalRepositoryDirectory( new File( localRepository.getBasedir() ) );
         try
         {
             InvocationResult invocationResult = invoker.execute( request );
