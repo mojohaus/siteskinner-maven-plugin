@@ -3,7 +3,7 @@
  ------
  Robert Scholte
  ------
- 2011-12-16
+ 2012-08-31
  ------
 
 Usage
@@ -40,23 +40,22 @@ Command line options
   
 PublishDate support
 
-  When deploying a site, the current date will be used as the publish date. The siteskinner can push the original publish date, but that requires an adjustment in the skins.
-  The following table shows which version of a skin supports a custom publish date.
+  Normally when deploying a site, the current date will be used as the publish date. When deploying with the siteskinner, the original publish date will be used.
+  The following table shows which version of a skin supports the publish date adjustment.
   
   Most skins only provide css-files, whereas the templating is done by Doxia sitetools. 
-  For these skins it's not possible to specify a version.
-  Doxia-sitetools is a dependency of the maven-site-plugin, so that's where you should check which version of the doxia-sitetools is used.  
+  For these skins it's not possible to specify a version, it depends on the version of Doxia-sitetools, a dependency of the maven-site-plugin.  
 
-*-----------------------------------------------------------------------------------+---------------------+
-|| {{{http://maven.apache.org/skins/}Apache Maven Skins}}                           || Support since      ||
-*-----------------------------------------------------------------------------------+---------------------+
-| {{{http://maven.apache.org/skins/maven-application-skin/}Maven Application Skin}} | Doxia Sitetools 1.3 |
-*-----------------------------------------------------------------------------------+---------------------+
-| {{{http://maven.apache.org/skins/maven-classic-skin/}Maven Classic Skin}}         | Doxia Sitetools 1.3 |
-*-----------------------------------------------------------------------------------+---------------------+
-| {{{http://maven.apache.org/skins/maven-default-skin/}Maven Default Skin}}         | Doxia Sitetools 1.3 |
-*-----------------------------------------------------------------------------------+---------------------+
-| {{{http://maven.apache.org/skins/maven-stylus-skin/}Maven Stylus Skin}}           | 1.4                 |
-*-----------------------------------------------------------------------------------+---------------------+
-| {{{http://maven.apache.org/skins/maven-fluido-skin/}Maven Fluido Skin}}           | 1.1                 |
-*-----------------------------------------------------------------------------------+---------------------+
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+|| {{{http://maven.apache.org/skins/}Apache Maven Skins}}                           || Support since                                            ||
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+| {{{http://maven.apache.org/skins/maven-application-skin/}Maven Application Skin}} | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+| {{{http://maven.apache.org/skins/maven-classic-skin/}Maven Classic Skin}}         | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+| {{{http://maven.apache.org/skins/maven-default-skin/}Maven Default Skin}}         | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+| {{{http://maven.apache.org/skins/maven-stylus-skin/}Maven Stylus Skin}}           | 1.4                                                       |
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+| {{{http://maven.apache.org/skins/maven-fluido-skin/}Maven Fluido Skin}}           | 1.1                                                       |
+*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
