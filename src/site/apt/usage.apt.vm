@@ -40,7 +40,7 @@ Command line options
   
 PublishDate support
 
-  Normally when deploying a site, the current date will be used as the publish date. When deploying with the siteskinner, the original publish date will be used.
+  Normally when deploying a site, the current date will be used as the publish date. When deploying with the siteskinner, the original publish date will automatically be used.
   The following table shows which version of a skin supports the publish date adjustment.
   
   Most skins only provide css-files, whereas the templating is done by Doxia sitetools. 
