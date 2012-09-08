@@ -25,9 +25,6 @@
             <version>1.7</version>
           </dependency>
         </dependencies>
-        <configuration>
-          <settingsFile>@project.basedir@/src/it/mrm/settings.xml</settingsFile>
-        </configuration>
       </plugin>
     </plugins>
   </build>
