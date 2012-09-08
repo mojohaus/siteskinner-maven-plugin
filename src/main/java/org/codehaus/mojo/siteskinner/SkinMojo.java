@@ -51,6 +51,7 @@ import org.apache.maven.doxia.site.decoration.PublishDate;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
+import org.apache.maven.doxia.tools.SiteToolException;
 import org.apache.maven.execution.RuntimeInformation;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
@@ -70,7 +71,9 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
+import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
+import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -118,7 +121,46 @@ public class SkinMojo
      */
     @Parameter( defaultValue = "${project.build.directory}/siteskinner", readonly = true )
     private File workingDirectory;
+    
 
+    /**
+     * The reactor projects.
+     */
+    @Parameter( defaultValue = "${reactorProjects}", readonly = true, required = true )
+    private List<MavenProject> reactorProjects;
+
+    /**
+     * Specifies the input encoding.
+     */
+    @Parameter( defaultValue = "${project.build.sourceEncoding}", property = "encoding" )
+    private String inputEncoding;
+
+    /**
+     * Specifies the output encoding.
+     */
+    @Parameter( defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding" )
+    private String outputEncoding;
+
+    /**
+     * Gets the input files encoding.
+     * 
+     * @return The input files encoding, never <code>null</code>.
+     */
+    private String getInputEncoding()
+    {
+        return ( inputEncoding == null ) ? ReaderFactory.ISO_8859_1 : inputEncoding;
+    }
+
+    /**
+     * Gets the effective reporting output files encoding.
+     * 
+     * @return The effective reporting output file encoding, never <code>null</code>.
+     */
+    private String getOutputEncoding()
+    {
+        return ( outputEncoding == null ) ? WriterFactory.UTF_8 : outputEncoding;
+    }
+    
     @Component
     private MavenProject currentProject;
 
@@ -128,6 +170,11 @@ public class SkinMojo
     @Parameter( defaultValue = "${localRepository}", readonly = true, required = true )
     private ArtifactRepository localRepository;
 
+    /**
+     * 
+     */
+    @Parameter ( property="settingsFile" )
+    private File settingsFile;
     /**
      * The remote repositories where artifacts are located.
      */
@@ -200,6 +247,26 @@ public class SkinMojo
 
             for ( Locale locale : siteTool.getAvailableLocales( releasedLocales ) )
             {
+                DecorationModel resolvedCurrentModel;
+                try
+                {
+                    resolvedCurrentModel =
+                        siteTool.getDecorationModel( currentProject, reactorProjects, localRepository,
+                                                     remoteRepositories, currentSiteDirectory, locale,
+                                                     getInputEncoding(), getOutputEncoding() );
+                }
+                catch ( SiteToolException e )
+                {
+                    getLog().warn( e.getMessage(), e );
+                    continue;
+                }
+
+                if ( resolvedCurrentModel.getSkin() == null )
+                {
+                    throw new MojoFailureException(
+                                "No skin defined in the current project, neither inherited; Can't apply a new skin on the old site." );
+                }
+                
                 File currentSiteXml =
                     siteTool.getSiteDescriptorFromBasedir( currentSiteDirectory, currentProject.getBasedir(), locale );
                 
@@ -228,11 +295,7 @@ public class SkinMojo
                     releasedModel = new DecorationModel();
                 }
 
-                // Ideally we would check if it is worth reskinning, but that requires a lot of checks:
-                // - A new skin, either directly or inherited from the parent
-                // - New model elements, either directly or inherited from the parent
-                // Right now it's not worth it to do all these checks
-                
+                releasedModel.setSkin( resolvedCurrentModel.getSkin() );
                 // MOJO-1827: Copy all layout-specific content
                 releasedModel.setBannerLeft( currentModel.getBannerLeft() );
                 releasedModel.setBannerRight( currentModel.getBannerRight() );
@@ -241,7 +304,6 @@ public class SkinMojo
                 releasedModel.setName( currentModel.getName() );
                 releasedModel.setPoweredBy( currentModel.getPoweredBy() );
                 releasedModel.setPublishDate( currentModel.getPublishDate() );
-                releasedModel.setSkin( currentModel.getSkin() );
                 releasedModel.setVersion( currentModel.getVersion() );
 
                 if ( mergeBody && currentModel.getBody() != null )
@@ -335,6 +397,7 @@ public class SkinMojo
         request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
         request.setPomFile( releasedProject.getFile() );
         request.setShowErrors( true );
+        request.setUserSettingsFile( settingsFile );
         
         invoker.setLocalRepositoryDirectory( new File( localRepository.getBasedir() ) );
         try
