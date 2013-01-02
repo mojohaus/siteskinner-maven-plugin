@@ -52,7 +52,6 @@ import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
 import org.apache.maven.doxia.tools.SiteToolException;
-import org.apache.maven.execution.RuntimeInformation;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -89,6 +88,20 @@ public class SkinMojo
     extends AbstractMojo
 {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
+    
+    /**
+     * Some versions of the maven-site-plugin require a specific Maven version. This check is done by the siteskinner.
+     * You can fork the execution of the site generation to another version of maven by setting the {@code mavenHome} 
+     *  
+     * <table>
+     *   <tr><th>Maven Site Plugin version</th><th>Required Maven version</th></tr>
+     *   <tr><td>(,3.0-alpha-1)   </td><td>2.x</td></tr>
+     *   <tr><td>[3.0-alpha-1,3.0)</td><td>3.x</td></tr>
+     *   <tr><td>[3.0,)</td><td>2.x or 3.x</td></tr>
+     * </table>
+     */
+    @Parameter( property = "mavenHome" )
+    private File mavenHome;
 
     /**
      * Force a checkout instead of an update when the sources have already been checked out during a previous run.
@@ -181,9 +194,6 @@ public class SkinMojo
     @Parameter( defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true ) 
     private List<ArtifactRepository> remoteRepositories;
     
-    @Component
-    private RuntimeInformation runtimeInformation;
-
     @Component
     private MavenProjectBuilder mavenProjectBuilder;
 
@@ -400,6 +410,7 @@ public class SkinMojo
         request.setUserSettingsFile( settingsFile );
         
         invoker.setLocalRepositoryDirectory( new File( localRepository.getBasedir() ) );
+        invoker.setMavenHome( mavenHome );
         try
         {
             InvocationResult invocationResult = invoker.execute( request );
@@ -442,20 +453,29 @@ public class SkinMojo
     {
         //MOJO-1825: verify site-plugin-version with maven-version
         ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
-        ArtifactVersion mavenVersion = getMavenVersion();
+        
+        String mavenVersion;
+        if ( mavenHome == null )
+        {
+            mavenVersion = SelectorUtils.getMavenVersion();
+        }
+        else
+        {
+            mavenVersion = SelectorUtils.getMavenVersion( mavenHome );
+        }
         
         if ( sitePluginVersion != null )
         {
             try
             {
                 if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( mavenVersion ) )
+                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( new DefaultArtifactVersion ( mavenVersion ) ) )
                 {
                     throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
                         + " can only be executed with Maven 2.x" );
                 }
                 else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( mavenVersion ) )
+                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( new DefaultArtifactVersion ( mavenVersion ) ) )
                 {
                     throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
                         + " can only be executed with Maven 3.x+" );
@@ -496,11 +516,6 @@ public class SkinMojo
         return sitePluginVersion;
     }
     
-    private ArtifactVersion getMavenVersion()
-    {
-       return runtimeInformation.getApplicationVersion();   
-    }
-
     private String getConnection( MavenProject mavenProject )
         throws MojoFailureException
     {
