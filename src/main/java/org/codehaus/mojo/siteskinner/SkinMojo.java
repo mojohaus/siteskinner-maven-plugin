@@ -24,14 +24,19 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.ParseException;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.metadata.ArtifactMetadataRetrievalException;
@@ -67,12 +72,14 @@ import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.InvokerLogger;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.WriterFactory;
+import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -88,37 +95,59 @@ public class SkinMojo
     extends AbstractMojo
 {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
-    
+
     /**
      * Some versions of the maven-site-plugin require a specific Maven version. This check is done by the siteskinner.
-     * You can fork the execution of the site generation to another version of maven by setting the {@code mavenHome} 
-     *  
+     * You can fork the execution of the site generation to another version of maven by setting the {@code mavenHome}
      * <table>
-     *   <tr><th>Maven Site Plugin version</th><th>Required Maven version</th></tr>
-     *   <tr><td>(,3.0-alpha-1)   </td><td>2.x</td></tr>
-     *   <tr><td>[3.0-alpha-1,3.0)</td><td>3.x</td></tr>
-     *   <tr><td>[3.0,)</td><td>2.x or 3.x</td></tr>
+     * <tr>
+     * <th>Maven Site Plugin version</th>
+     * <th>Required Maven version</th>
+     * </tr>
+     * <tr>
+     * <td>(,3.0-alpha-1)</td>
+     * <td>2.x</td>
+     * </tr>
+     * <tr>
+     * <td>[3.0-alpha-1,3.0)</td>
+     * <td>3.x</td>
+     * </tr>
+     * <tr>
+     * <td>[3.0,)</td>
+     * <td>2.x or 3.x</td>
+     * </tr>
      * </table>
      */
     @Parameter( property = "mavenHome" )
     private File mavenHome;
 
     /**
+     * Addition arguments, accepts:
+     * <ul>
+     *   <li>-D,--define &lt;arg&gt;</li>
+     *   <li>-P,--activate-profiles &lt;arg&gt;</li>
+     *   <li>-X,--debug</li>
+     * </ul>   
+     */
+    @Parameter( property = "arguments" )
+    private String arguments;
+
+    /**
      * Force a checkout instead of an update when the sources have already been checked out during a previous run.
      */
     @Parameter( property = "forceCheckout", defaultValue = "false" )
     private boolean forceCheckout;
-    
+
     /**
-     * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items.
-     * Set to {@false} if you don't want to merge the body.
+     * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items. Set
+     * to {@false} if you don't want to merge the body.
      */
     @Parameter( property = "mergeBody", defaultValue = "true" )
     private boolean mergeBody;
 
     /**
-     * If {@code false} the plugin should only generate the site, 
-     * else if {@code true} the site should be published immediately too.
+     * If {@code false} the plugin should only generate the site, else if {@code true} the site should be published
+     * immediately too.
      */
     @Parameter( property = "siteDeploy", defaultValue = "false" )
     private boolean siteDeploy;
@@ -134,7 +163,6 @@ public class SkinMojo
      */
     @Parameter( defaultValue = "${project.build.directory}/siteskinner", readonly = true )
     private File workingDirectory;
-    
 
     /**
      * The reactor projects.
@@ -173,7 +201,7 @@ public class SkinMojo
     {
         return ( outputEncoding == null ) ? WriterFactory.UTF_8 : outputEncoding;
     }
-    
+
     @Component
     private MavenProject currentProject;
 
@@ -186,14 +214,15 @@ public class SkinMojo
     /**
      * 
      */
-    @Parameter ( property="settingsFile" )
+    @Parameter( property = "settingsFile" )
     private File settingsFile;
+
     /**
      * The remote repositories where artifacts are located.
      */
-    @Parameter( defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true ) 
+    @Parameter( defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true )
     private List<ArtifactRepository> remoteRepositories;
-    
+
     @Component
     private MavenProjectBuilder mavenProjectBuilder;
 
@@ -236,15 +265,16 @@ public class SkinMojo
         {
             throw new MojoExecutionException( e.getMessage() );
         }
-        
+
         verifyVersionCompatibility( releasedProject );
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration( releasedProject );
         String releasedSiteDirectory =
             releasedConfig == null || releasedConfig.getChild( "siteDirectory" ) == null ? "src/site"
                             : releasedConfig.getChild( "siteDirectory" ).getValue();
-        String releasedLocales = ( releasedConfig == null || releasedConfig.getChild( "locales" ) == null 
-            ? null : releasedConfig.getChild( "locales" ).getValue() );
+        String releasedLocales =
+            ( releasedConfig == null || releasedConfig.getChild( "locales" ) == null ? null
+                            : releasedConfig.getChild( "locales" ).getValue() );
 
         Xpp3Dom currentConfig = getSitePluginConfiguration( currentProject );
         String currentSiteDirectory =
@@ -274,12 +304,12 @@ public class SkinMojo
                 if ( resolvedCurrentModel.getSkin() == null )
                 {
                     throw new MojoFailureException(
-                                "No skin defined in the current project, neither inherited; Can't apply a new skin on the old site." );
+                                                    "No skin defined in the current project, neither inherited; Can't apply a new skin on the old site." );
                 }
-                
+
                 File currentSiteXml =
                     siteTool.getSiteDescriptorFromBasedir( currentSiteDirectory, currentProject.getBasedir(), locale );
-                
+
                 DecorationModel currentModel;
                 if ( currentSiteXml.exists() )
                 {
@@ -291,7 +321,7 @@ public class SkinMojo
                 }
 
                 File releasedSiteXml =
-                  siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
+                    siteTool.getSiteDescriptorFromBasedir( releasedSiteDirectory, releasedProject.getBasedir(), locale );
 
                 DecorationModel releasedModel = null;
                 if ( releasedSiteXml.exists() )
@@ -326,18 +356,18 @@ public class SkinMojo
                     releasedModel.getBody().setFooter( currentModel.getBody().getFooter() );
                     releasedModel.getBody().setHead( currentModel.getBody().getHead() );
                     releasedModel.getBody().setLinks( currentModel.getBody().getLinks() );
-                }    
+                }
 
                 Xpp3Dom mergedCustom =
-                  Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
-                
+                    Xpp3DomUtils.mergeXpp3Dom( (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom() );
+
                 if ( mergedCustom == null )
                 {
                     mergedCustom = new Xpp3Dom( "custom" );
                 }
-                
+
                 Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
-                
+
                 long preResolveDate = System.currentTimeMillis();
 
                 try
@@ -356,15 +386,15 @@ public class SkinMojo
                 long deployDate;
                 if ( releasedArtifact.getFile().lastModified() < preResolveDate )
                 {
-                    //we can assume that the ArtifactResolver changed the lastModified value
+                    // we can assume that the ArtifactResolver changed the lastModified value
                     deployDate = releasedArtifact.getFile().lastModified();
                 }
                 else
                 {
-                 // Use the modified-date from the first entry of the jar as releaseDate
+                    // Use the modified-date from the first entry of the jar as releaseDate
                     JarFile jarFile = new JarFile( releasedArtifact.getFile() );
-                    JarEntry entry = jarFile.entries().nextElement();   
-                    
+                    JarEntry entry = jarFile.entries().nextElement();
+
                     deployDate = entry.getTime();
                 }
 
@@ -391,7 +421,7 @@ public class SkinMojo
                 {
                     IOUtil.close( fileOutputStream );
                 }
-                
+
             }
         }
         catch ( IOException e )
@@ -403,14 +433,28 @@ public class SkinMojo
             throw new MojoExecutionException( e.getMessage() );
         }
 
-        InvocationRequest request = new DefaultInvocationRequest();
-        request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
-        request.setPomFile( releasedProject.getFile() );
-        request.setShowErrors( true );
-        request.setUserSettingsFile( settingsFile );
-        
+        InvocationRequest request = buildInvokerRequest( releasedProject );
+
         invoker.setLocalRepositoryDirectory( new File( localRepository.getBasedir() ) );
         invoker.setMavenHome( mavenHome );
+
+        if ( getLog().isDebugEnabled() )
+        {
+            invoker.getLogger().setThreshold( InvokerLogger.DEBUG );
+        }
+        else if ( getLog().isInfoEnabled() )
+        {
+            invoker.getLogger().setThreshold( InvokerLogger.INFO );
+        }
+        else if ( getLog().isWarnEnabled() )
+        {
+            invoker.getLogger().setThreshold( InvokerLogger.WARN );
+        }
+        else if ( getLog().isErrorEnabled() )
+        {
+            invoker.getLogger().setThreshold( InvokerLogger.ERROR );
+        }
+        
         try
         {
             InvocationResult invocationResult = invoker.execute( request );
@@ -423,6 +467,74 @@ public class SkinMojo
         {
             throw new MojoExecutionException( e.getMessage() );
         }
+    }
+
+    private InvocationRequest buildInvokerRequest( MavenProject releasedProject )
+        throws MojoFailureException
+    {
+        InvocationRequest request = new DefaultInvocationRequest();
+        request.setGoals( Collections.singletonList( siteDeploy ? "site-deploy" : "site" ) );
+        request.setPomFile( releasedProject.getFile() );
+        request.setShowErrors( true );
+        request.setUserSettingsFile( settingsFile );
+
+        if ( arguments != null )
+        {
+            try
+            {
+                String[] args = CommandLineUtils.translateCommandline( arguments );
+                CLIManager cliManager = new CLIManager();
+                CommandLine cl = cliManager.parse( args );
+                request.setDebug( cl.hasOption( CLIManager.DEBUG ) );
+
+                // ----------------------------------------------------------------------
+                // Profile Activation
+                // ----------------------------------------------------------------------
+                List<String> profiles = new ArrayList<String>();
+
+                if ( cl.hasOption( CLIManager.ACTIVATE_PROFILES ) )
+                {
+                    String[] profileOptionValues = cl.getOptionValues( CLIManager.ACTIVATE_PROFILES );
+                    if ( profileOptionValues != null )
+                    {
+                        for ( String profileOptionValue : profileOptionValues )
+                        {
+                            StringTokenizer profileTokens = new StringTokenizer( profileOptionValue, "," );
+
+                            while ( profileTokens.hasMoreTokens() )
+                            {
+                                profiles.add( profileTokens.nextToken().trim() );
+                            }
+                        }
+                    }
+                    request.setProfiles( profiles );
+                }
+
+                if ( cl.hasOption( CLIManager.SET_SYSTEM_PROPERTY ) )
+                {
+                    Properties userProperties = new Properties();
+                    String[] defStrs = cl.getOptionValues( CLIManager.SET_SYSTEM_PROPERTY );
+        
+                    if ( defStrs != null )
+                    {
+                        for ( String defStr : defStrs )
+                        {
+                            setCliProperty( defStr, userProperties );
+                        }
+                    }
+                    request.setProperties( userProperties );
+                }
+            }
+            catch ( ParseException e )
+            {
+                throw new MojoFailureException( "Unsupported option: " + e.getMessage() );
+            }
+            catch ( Exception e )
+            {
+                throw new MojoFailureException( e.getMessage() );
+            }
+        }
+        return request;
     }
 
     private DecorationModel readDecorationModel( DecorationXpp3Reader reader, File currentSiteXml )
@@ -442,8 +554,8 @@ public class SkinMojo
     }
 
     /**
-     * Verify is the Maven version can be used with the specified maven-site-plugin version, 
-     *   since the maven-site-plugin is not compatible with every Maven version.
+     * Verify is the Maven version can be used with the specified maven-site-plugin version, since the maven-site-plugin
+     * is not compatible with every Maven version.
      * 
      * @param releasedProject
      * @throws MojoFailureException
@@ -451,9 +563,9 @@ public class SkinMojo
     private void verifyVersionCompatibility( MavenProject releasedProject )
         throws MojoFailureException
     {
-        //MOJO-1825: verify site-plugin-version with maven-version
+        // MOJO-1825: verify site-plugin-version with maven-version
         ArtifactVersion sitePluginVersion = getSitePluginVersion( releasedProject );
-        
+
         String mavenVersion;
         if ( mavenHome == null )
         {
@@ -463,19 +575,21 @@ public class SkinMojo
         {
             mavenVersion = SelectorUtils.getMavenVersion( mavenHome );
         }
-        
+
         if ( sitePluginVersion != null )
         {
             try
             {
                 if ( VersionRange.createFromVersionSpec( "(,3.0-alpha-1)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( new DefaultArtifactVersion ( mavenVersion ) ) )
+                    && VersionRange.createFromVersionSpec( "[3.0,)" ).containsVersion( new DefaultArtifactVersion(
+                                                                                                                   mavenVersion ) ) )
                 {
                     throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
                         + " can only be executed with Maven 2.x" );
                 }
                 else if ( VersionRange.createFromVersionSpec( "[3.0-alpha-1,3.0)" ).containsVersion( sitePluginVersion )
-                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( new DefaultArtifactVersion ( mavenVersion ) ) )
+                    && VersionRange.createFromVersionSpec( "(, 3.0)" ).containsVersion( new DefaultArtifactVersion(
+                                                                                                                    mavenVersion ) ) )
                 {
                     throw new MojoFailureException( "maven-site-plugin:" + sitePluginVersion
                         + " can only be executed with Maven 3.x+" );
@@ -493,29 +607,29 @@ public class SkinMojo
         Plugin sitePlugin = (Plugin) releasedProject.getBuild().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         if ( sitePlugin == null )
         {
-            sitePlugin = (Plugin) 
-               releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+            sitePlugin =
+                (Plugin) releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
         return (Xpp3Dom) sitePlugin.getConfiguration();
     }
-    
+
     private ArtifactVersion getSitePluginVersion( MavenProject releasedProject )
     {
         ArtifactVersion sitePluginVersion = null;
         Plugin sitePlugin = (Plugin) releasedProject.getBuild().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         if ( sitePlugin == null )
         {
-            sitePlugin = (Plugin) 
-               releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
+            sitePlugin =
+                (Plugin) releasedProject.getBuild().getPluginManagement().getPluginsAsMap().get( MAVEN_SITE_PLUGIN_KEY );
         }
 
         if ( sitePlugin != null && sitePlugin.getVersion() != null )
         {
-            sitePluginVersion = new DefaultArtifactVersion( sitePlugin.getVersion() ); 
+            sitePluginVersion = new DefaultArtifactVersion( sitePlugin.getVersion() );
         }
         return sitePluginVersion;
     }
-    
+
     private String getConnection( MavenProject mavenProject )
         throws MojoFailureException
     {
@@ -625,20 +739,42 @@ public class SkinMojo
 
                 getLog().info( "Performing checkout to " + checkoutDir );
 
-                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() )
-                    .checkout( checkoutDir.getPath() );
+                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() ).checkout( checkoutDir.getPath() );
             }
             else
             {
                 getLog().info( "Performing update to " + checkoutDir );
 
-                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() )
-                    .update( checkoutDir.getPath() );
+                new ScmCommandExecutor( scmManager, getConnection( mavenProject ), getLog() ).update( checkoutDir.getPath() );
             }
         }
         catch ( Exception ex )
         {
             throw new MojoExecutionException( "checkout failed.", ex );
         }
+    }
+    
+    private static void setCliProperty( String property, Properties properties )
+    {
+        String name;
+
+        String value;
+
+        int i = property.indexOf( "=" );
+
+        if ( i <= 0 )
+        {
+            name = property.trim();
+
+            value = "true";
+        }
+        else
+        {
+            name = property.substring( 0, i ).trim();
+
+            value = property.substring( i + 1 );
+        }
+
+        properties.setProperty( name, value );
     }
 }
