@@ -117,6 +117,7 @@ public class SkinMojo
      * <td>2.x or 3.x</td>
      * </tr>
      * </table>
+     * @since 1.1
      */
     @Parameter( property = "mavenHome" )
     private File mavenHome;
@@ -127,13 +128,15 @@ public class SkinMojo
      *   <li>-D,--define &lt;arg&gt;</li>
      *   <li>-P,--activate-profiles &lt;arg&gt;</li>
      *   <li>-X,--debug</li>
-     * </ul>   
+     * </ul>
+     * @since 1.1
      */
     @Parameter( property = "arguments" )
     private String arguments;
 
     /**
      * Force a checkout instead of an update when the sources have already been checked out during a previous run.
+     * @since 1.0
      */
     @Parameter( property = "forceCheckout", defaultValue = "false" )
     private boolean forceCheckout;
@@ -141,6 +144,7 @@ public class SkinMojo
     /**
      * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items. Set
      * to {@false} if you don't want to merge the body.
+     * @since 1.0
      */
     @Parameter( property = "mergeBody", defaultValue = "true" )
     private boolean mergeBody;
@@ -148,10 +152,34 @@ public class SkinMojo
     /**
      * If {@code false} the plugin should only generate the site, else if {@code true} the site should be published
      * immediately too.
+     * @since 1.0
      */
     @Parameter( property = "siteDeploy", defaultValue = "false" )
     private boolean siteDeploy;
 
+    /**
+     * In most cases this plugin can discover the original publishDate. You could set this value for those cases when this fails
+     * @since 1.1
+     */
+    @Parameter( property = "siteskinner.publishDate" )
+    private String publishDate;
+    
+    /**
+     * Specifies the input encoding.
+     * @since 1.0
+     */
+    @Parameter( defaultValue = "${project.build.sourceEncoding}", property = "encoding" )
+    private String inputEncoding;
+
+    /**
+     * Specifies the output encoding.
+     * @since 1.0
+     */
+    @Parameter( defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding" )
+    private String outputEncoding;
+
+    /* Read-only parmaters */
+    
     /**
      * Versionrange to calculate latest released version
      */
@@ -169,18 +197,6 @@ public class SkinMojo
      */
     @Parameter( defaultValue = "${reactorProjects}", readonly = true, required = true )
     private List<MavenProject> reactorProjects;
-
-    /**
-     * Specifies the input encoding.
-     */
-    @Parameter( defaultValue = "${project.build.sourceEncoding}", property = "encoding" )
-    private String inputEncoding;
-
-    /**
-     * Specifies the output encoding.
-     */
-    @Parameter( defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding" )
-    private String outputEncoding;
 
     /**
      * Gets the input files encoding.
@@ -212,7 +228,7 @@ public class SkinMojo
     private ArtifactRepository localRepository;
 
     /**
-     * 
+     * @since 1.0
      */
     @Parameter( property = "settingsFile" )
     private File settingsFile;
@@ -366,39 +382,6 @@ public class SkinMojo
                     mergedCustom = new Xpp3Dom( "custom" );
                 }
 
-                Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
-
-                long preResolveDate = System.currentTimeMillis();
-
-                try
-                {
-                    resolver.resolveAlways( releasedArtifact, remoteRepositories, localRepository );
-                }
-                catch ( ArtifactResolutionException e )
-                {
-                    throw new MojoExecutionException( e.getMessage() );
-                }
-                catch ( ArtifactNotFoundException e )
-                {
-                    throw new MojoExecutionException( e.getMessage() );
-                }
-
-                long deployDate;
-                if ( releasedArtifact.getFile().lastModified() < preResolveDate )
-                {
-                    // we can assume that the ArtifactResolver changed the lastModified value
-                    deployDate = releasedArtifact.getFile().lastModified();
-                }
-                else
-                {
-                    // Use the modified-date from the first entry of the jar as releaseDate
-                    JarFile jarFile = new JarFile( releasedArtifact.getFile() );
-                    JarEntry entry = jarFile.entries().nextElement();
-
-                    deployDate = entry.getTime();
-                }
-
-                Date releaseDate = new Date( deployDate );
                 String publishDateFormat;
                 if ( releasedModel.getPublishDate() != null )
                 {
@@ -408,7 +391,61 @@ public class SkinMojo
                 {
                     publishDateFormat = new PublishDate().getFormat();
                 }
-                publishDateChild.setValue( new SimpleDateFormat( publishDateFormat ).format( releaseDate ) );
+
+                Xpp3Dom publishDateChild = new Xpp3Dom( "publishDate" );
+                
+                String publishDateValue;
+                
+                if ( publishDate == null )
+                {
+                    long preResolveDate = System.currentTimeMillis();
+
+                    try
+                    {
+                        resolver.resolveAlways( releasedArtifact, remoteRepositories, localRepository );
+                    }
+                    catch ( ArtifactResolutionException e )
+                    {
+                        throw new MojoExecutionException( e.getMessage() );
+                    }
+                    catch ( ArtifactNotFoundException e )
+                    {
+                        throw new MojoExecutionException( e.getMessage() );
+                    }
+
+                    long deployDate;
+                    if ( releasedArtifact.getFile().lastModified() < preResolveDate )
+                    {
+                        // we can assume that the ArtifactResolver changed the lastModified value
+                        deployDate = releasedArtifact.getFile().lastModified();
+                    }
+                    else
+                    {
+                        // Use the modified-date from the first entry of the jar as releaseDate
+                        JarFile jarFile = new JarFile( releasedArtifact.getFile() );
+                        JarEntry entry = jarFile.entries().nextElement();
+
+                        deployDate = entry.getTime();
+                    }
+                    Date releaseDate = new Date( deployDate );
+                    
+                    publishDateValue = new SimpleDateFormat( publishDateFormat ).format( releaseDate );
+                }
+                else
+                {
+                    // verify that specified publishDate matches the publishDateFormat
+                    try
+                    {
+                        new SimpleDateFormat( publishDateFormat ).parse( publishDate );
+                    }
+                    catch ( java.text.ParseException e )
+                    {
+                        throw new MojoExecutionException( e.getMessage() );
+                    }
+                    publishDateValue = publishDate;
+                }
+
+                publishDateChild.setValue( publishDateValue );
                 mergedCustom.addChild( publishDateChild );
                 releasedModel.setCustom( mergedCustom );
 
