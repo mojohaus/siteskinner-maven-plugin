@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.codehaus.mojo</groupId>
     <artifactId>mojo-parent</artifactId>
-    <version>31</version>
+    <version>40</version>
   </parent>
 
   <artifactId>siteskinner-maven-plugin</artifactId>
@@ -46,13 +46,14 @@
   </properties>
 
   <scm>
-    <connection>scm:svn:http://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</connection>
-    <developerConnection>scm:svn:https://svn.codehaus.org/mojo/trunk/mojo/siteskinner-maven-plugin</developerConnection>
-    <url>https://fisheye.codehaus.org/browse/mojo/trunk/mojo/siteskinner-maven-plugin</url>
+    <connection>scm:git:https://github.com/mojohaus/siteskinner-maven-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/mojohaus/siteskinner-maven-plugin.git</developerConnection>
+    <url>https://github.com/mojohaus/siteskinner-maven-plugin/tree/${project.scm.tag}</url>
+    <tag>master</tag>
   </scm>
   <issueManagement>
-    <system>JIRA</system>
-    <url>http://jira.codehaus.org/browse/MSITESKIN</url> 
+    <system>github</system>
+    <url>https://github.com/mojohaus/siteskinner-maven-plugin/issues/</url>
   </issueManagement>
 
   <dependencies>
