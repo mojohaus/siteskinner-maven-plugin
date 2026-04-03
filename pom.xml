@@ -41,7 +41,7 @@
   <properties>
     <mojo.java.target>1.5</mojo.java.target>
     <mavenPluginPluginVersion>3.5.1</mavenPluginPluginVersion>
-    <mavenVersion>2.0.6</mavenVersion>
+    <mavenVersion>3.8.1</mavenVersion>
     <scmVersion>1.8</scmVersion>
   </properties>
 
