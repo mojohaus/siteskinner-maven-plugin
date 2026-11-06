@@ -1,73 +1,77 @@
- ------
- Usage
- ------
- Robert Scholte
- ------
- 2012-08-31
- ------
+---
+title: Usage
+author:
+  - Robert Scholte
+date: 2012-08-31
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
 Usage
+=====
 
-  This plugin has been written to be able to apply a new skin on deployed sites of Maven Projects.
-  
-  Before you begin be sure that the current project already uses the new skin.
-  
-  When you execute <<<siteskinner:skin>>> the following steps are taken:
-  
-  * The plugin will look for the most recent deployed version of the project. From this version the pom is read to get the scm-information.
-  
-  * The sources of this version will be checked out under <<<target/siteskinner>>>. 
-  
-  * The skin and the custom-section of the site.xml of the current project are merged with the checked out sources.
-  
-  * The plugin will call <<<mvn site>>> on the checked out project. <Et voil\340>, we have the old content with a new skin.
-  
-  * If you have verified the site under <<<target/siteskinner/target/site>>> you can deploy it by a <<<mvn site:deploy>>> from <<<target/siteskinner>>>.
-  
-  []
-  
-  This plugin supports locales and multi-module projects (the checkout will only be done on the root of the project).
-  
+This plugin has been written to be able to apply a new skin on deployed sites of Maven Projects.
+
+Before you begin be sure that the current project already uses the new skin.
+
+When you execute `siteskinner:skin` the following steps are taken:
+
+* The plugin will look for the most recent deployed version of the project. From this version the pom is read to get the scm-information.
+* The sources of this version will be checked out under `target/siteskinner`.
+* The skin and the custom-section of the site.xml of the current project are merged with the checked out sources.
+* The plugin will call `mvn site` on the checked out project. *Et voilà*, we have the old content with a new skin.
+* If you have verified the site under `target/siteskinner/target/site` you can deploy it by a `mvn site:deploy` from `target/siteskinner`.
+
+This plugin supports locales and multi-module projects (the checkout will only be done on the root of the project).
+
 Command line options
+====================
 
-  The skinner plugin has only a few options:
-  
-  * <<<siteDeploy>>> (default: <<false>>): If this value is set to true the re-skinned site will immediately be deployed.
-  
-  * <<<forceCheckout>>> (default: <<false>>): By setting this value to <<<true>>> a clean checkout is done instead of an update.   
+The skinner plugin has only a few options:
 
-  * <<<mergeBody>>> (default: <<true>>): By setting this value to <<<false>>> none of the body elements will be merged, so the original layout is preserved.
-  
-  * <<<arguments>>> : additional arguments for <<<mvn site>>>, supports only a small subset of all available arguments.  
+* `siteDeploy` (default: **false**): If this value is set to true the re-skinned site will immediately be deployed.
+* `forceCheckout` (default: **false**): By setting this value to `true` a clean checkout is done instead of an update.
+* `mergeBody` (default: **true**): By setting this value to `false` none of the body elements will be merged, so the original layout is preserved.
+* `arguments` : additional arguments for `mvn site`, supports only a small subset of all available arguments.
+* `mavenHome` : some versions of the `maven-site-plugin` only work for a certain version of Maven, the plugin will verify that and suggest the preferred version.
+  You can either execute the siteskinner with the required Maven version, or refer to the required Maven version by settings this parameter.
 
-  * <<<mavenHome>>> : some versions of the <<<maven-site-plugin>>> only work for a certain version of Maven, the plugin will verify that and suggest the preferred version. 
-    You can either execute the siteskinner with the required Maven version, or refer to the required Maven version by settings this parameter. 
-
-----
+```sh
  /path/to/maven-version/bin/mvn siteskinner:skin
 
  mvn siteskinner:skin -DmavenHome=/path/to/maven-version/bin/mvn
-----
+```
 
-  
 PublishDate support
+===================
 
-  Normally when deploying a site, the current date will be used as the publish date. When deploying with the siteskinner, the original publish date will automatically be used.
-  The following table shows which version of a skin supports the publish date adjustment.
-  
-  Most skins only provide css-files, whereas the templating is done by Doxia sitetools. 
-  For these skins it's not possible to specify a version, it depends on the version of Doxia-sitetools, a dependency of the maven-site-plugin.  
+Normally when deploying a site, the current date will be used as the publish date. When deploying with the siteskinner, the original publish date will automatically be used.
+The following table shows which version of a skin supports the publish date adjustment.
 
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-|| {{{http://maven.apache.org/skins/}Apache Maven Skins}}                           || Support since                                            ||
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-| {{{http://maven.apache.org/skins/maven-application-skin/}Maven Application Skin}} | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-| {{{http://maven.apache.org/skins/maven-classic-skin/}Maven Classic Skin}}         | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-| {{{http://maven.apache.org/skins/maven-default-skin/}Maven Default Skin}}         | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-| {{{http://maven.apache.org/skins/maven-stylus-skin/}Maven Stylus Skin}}           | 1.4                                                       |
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
-| {{{http://maven.apache.org/skins/maven-fluido-skin/}Maven Fluido Skin}}           | 1.1                                                       |
-*-----------------------------------------------------------------------------------+-----------------------------------------------------------+
+Most skins only provide css-files, whereas the templating is done by Doxia sitetools.
+For these skins it's not possible to specify a version, it depends on the version of Doxia-sitetools, a dependency of the maven-site-plugin.
+
+| [Apache Maven Skins](http://maven.apache.org/skins/) | Support since |
+| --- | --- |
+| [Maven Application Skin](http://maven.apache.org/skins/maven-application-skin/) | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+| [Maven Classic Skin](http://maven.apache.org/skins/maven-classic-skin/) | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+| [Maven Default Skin](http://maven.apache.org/skins/maven-default-skin/) | Doxia Sitetools 1.3, included since maven-site-plugin-3.1 |
+| [Maven Stylus Skin](http://maven.apache.org/skins/maven-stylus-skin/) | 1.4 |
+| [Maven Fluido Skin](http://maven.apache.org/skins/maven-fluido-skin/) | 1.1 |
