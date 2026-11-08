@@ -31,74 +31,57 @@ import org.codehaus.plexus.util.StringUtils;
 
 /**
  * Based on the SelectorUtils from the maven-invoker-plugin
- * 
+ *
  * @author Robert Scholte
  * @since 1.1
  */
-public final class SelectorUtils
-{
+public final class SelectorUtils {
 
-    private SelectorUtils()
-    {
-    }
-    
+    private SelectorUtils() {}
+
     /**
      * Retrieves the current Maven version.
      * @return The current Maven version.
      */
-    static String getMavenVersion()
-    {
-        try
-        {
+    static String getMavenVersion() {
+        try {
             // This relies on the fact that MavenProject is the in core classloader
             // and that the core classloader is for the maven-core artifact
             // and that should have a pom.properties file
             // if this ever changes, we will have to revisit this code.
             Properties properties = new Properties();
-            properties.load( MavenProject.class.getClassLoader().getResourceAsStream(
-                "META-INF/maven/org.apache.maven/maven-core/pom.properties" ) );
-            return StringUtils.trim( properties.getProperty( "version" ) );
-        }
-        catch ( Exception e )
-        {
+            properties.load(MavenProject.class
+                    .getClassLoader()
+                    .getResourceAsStream("META-INF/maven/org.apache.maven/maven-core/pom.properties"));
+            return StringUtils.trim(properties.getProperty("version"));
+        } catch (Exception e) {
             return null;
         }
     }
-    
-    static String getMavenVersion( File mavenHome )
-    {
-        File mavenLib = new File( mavenHome, "lib" );
-        File[] jarFiles = mavenLib.listFiles( new FilenameFilter()
-        {
-            public boolean accept( File dir, String name )
-            {
-                return name.endsWith( ".jar" );
-            }
-        } );
 
-        for ( File file : jarFiles )
-        {
-            try
-            {
-                @SuppressWarnings( "deprecation" )
-                URL url =
-                    new URL( "jar:" + file.toURL().toExternalForm()
-                        + "!/META-INF/maven/org.apache.maven/maven-core/pom.properties" );
+    static String getMavenVersion(File mavenHome) {
+        File mavenLib = new File(mavenHome, "lib");
+        File[] jarFiles = mavenLib.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jar");
+            }
+        });
+
+        for (File file : jarFiles) {
+            try {
+                @SuppressWarnings("deprecation")
+                URL url = new URL("jar:" + file.toURL().toExternalForm()
+                        + "!/META-INF/maven/org.apache.maven/maven-core/pom.properties");
 
                 Properties properties = new Properties();
-                properties.load( url.openStream() );
-                String version = StringUtils.trim( properties.getProperty( "version" ) );
-                if ( version != null )
-                {
+                properties.load(url.openStream());
+                String version = StringUtils.trim(properties.getProperty("version"));
+                if (version != null) {
                     return version;
                 }
-            }
-            catch ( MalformedURLException e )
-            {
+            } catch (MalformedURLException e) {
                 // ignore
-            }
-            catch ( IOException e )
-            {
+            } catch (IOException e) {
                 // ignore
             }
         }

@@ -35,149 +35,123 @@ import org.apache.maven.scm.repository.ScmRepository;
 /**
  *  Executes scm command
  */
-public class ScmCommandExecutor
-{
+public class ScmCommandExecutor {
     private ScmManager manager;
 
     private String connectionUrl;
-    
+
     private Log log;
 
     /**
      * The constructor.
-     * 
+     *
      * @param manager the scmManager
      * @param connectionUrl the connection URL
      * @param log the mojo logger
      */
-    public ScmCommandExecutor( ScmManager manager, String connectionUrl, Log log )
-    {
+    public ScmCommandExecutor(ScmManager manager, String connectionUrl, Log log) {
         this.manager = manager;
-        
+
         this.connectionUrl = connectionUrl;
-        
+
         this.log = log;
     }
 
     /**
      * Check out sources in the {@code targetDirectory}.
-     *  
-     * @param targetDirectory the directory where the sources will be checked out 
+     *
+     * @param targetDirectory the directory where the sources will be checked out
      * @throws ScmException if the checkout throws an exception
      */
-    public void checkout( String targetDirectory )
-        throws ScmException
-    {
-        checkout( targetDirectory, null, null );
+    public void checkout(String targetDirectory) throws ScmException {
+        checkout(targetDirectory, null, null);
     }
 
     /**
      * Check out sources in the {@code targetDirectory}.
-     * 
+     *
      * @param targetDirectory the directory where the sources will be checked out
      * @param includes the sources to include
      * @param excludes the sources to exclude
      * @throws ScmException if the checkout throws an exception
      */
-    public void checkout( String targetDirectory, String includes, String excludes )
-        throws ScmException
-    {
-        try
-        {
-            ScmRepository repository = manager.makeScmRepository( connectionUrl );
+    public void checkout(String targetDirectory, String includes, String excludes) throws ScmException {
+        try {
+            ScmRepository repository = manager.makeScmRepository(connectionUrl);
 
-            ScmProvider provider = manager.getProviderByRepository( repository );
+            ScmProvider provider = manager.getProviderByRepository(repository);
 
-            ScmFileSet fileSet = getFileSet( targetDirectory, includes, excludes );
+            ScmFileSet fileSet = getFileSet(targetDirectory, includes, excludes);
 
-            CheckOutScmResult result = provider.checkOut( repository, fileSet );
+            CheckOutScmResult result = provider.checkOut(repository, fileSet);
 
-            if ( !checkResult( result ) ) 
-            {
-                throw new ScmException( "checkout failed with provider message" );
+            if (!checkResult(result)) {
+                throw new ScmException("checkout failed with provider message");
             }
-        }
-        catch ( Exception ex )
-        {
-            throw new ScmException( "checkout failed.", ex );
+        } catch (Exception ex) {
+            throw new ScmException("checkout failed.", ex);
         }
     }
-    
+
     /**
      * Update the sources in the {@code targetDirectory}.
-     * 
+     *
      * @param targetDirectory the directory where the sources will be updated
      * @throws ScmException if the update throws an exception
      */
-    public void update( String targetDirectory )
-        throws ScmException
-    {
-        update( targetDirectory, null, null );
+    public void update(String targetDirectory) throws ScmException {
+        update(targetDirectory, null, null);
     }
-    
+
     /**
      * Update the sources in the {@code targetDirectory}.
-     * 
+     *
      * @param targetDirectory the directory where the sources will be updated
      * @param includes the sources to include
      * @param excludes the sources to exclude
      * @throws ScmException if the update throws an exception
      */
-    public void update( String targetDirectory, String includes, String excludes  )
-        throws ScmException
-    {
-        try
-        {
-            ScmRepository repository = manager.makeScmRepository( connectionUrl );
+    public void update(String targetDirectory, String includes, String excludes) throws ScmException {
+        try {
+            ScmRepository repository = manager.makeScmRepository(connectionUrl);
 
-            ScmProvider provider = manager.getProviderByRepository( repository );
-            
-            ScmFileSet fileSet = getFileSet( targetDirectory, includes, excludes );
-            
-            UpdateScmResult result = provider.update( repository, fileSet );
+            ScmProvider provider = manager.getProviderByRepository(repository);
 
-            if ( !checkResult( result ) )
-            {
-                throw new ScmException( "checkout failed with provider message" );
+            ScmFileSet fileSet = getFileSet(targetDirectory, includes, excludes);
+
+            UpdateScmResult result = provider.update(repository, fileSet);
+
+            if (!checkResult(result)) {
+                throw new ScmException("checkout failed with provider message");
             }
-        }
-        catch ( Exception ex )
-        {
-            throw new ScmException( "checkout failed.", ex );
-        }
-    }
-    
-    private ScmFileSet getFileSet( String path, String includes, String excludes ) throws IOException
-    {
-        File dir = new File( path );
-        
-        if ( includes != null || excludes != null )
-        {
-            return new ScmFileSet( dir, includes, excludes );
-        }
-        else
-        {
-            return new ScmFileSet( dir );
+        } catch (Exception ex) {
+            throw new ScmException("checkout failed.", ex);
         }
     }
 
-    private boolean checkResult( ScmResult result )
-    {
-        if ( !result.isSuccess() )
-        {
+    private ScmFileSet getFileSet(String path, String includes, String excludes) throws IOException {
+        File dir = new File(path);
 
-            log.warn( "Provider message:" );
+        if (includes != null || excludes != null) {
+            return new ScmFileSet(dir, includes, excludes);
+        } else {
+            return new ScmFileSet(dir);
+        }
+    }
 
-            log.warn( result.getProviderMessage() == null ? "" : result.getProviderMessage() );
+    private boolean checkResult(ScmResult result) {
+        if (!result.isSuccess()) {
 
-            log.warn( "Command output:" );
+            log.warn("Provider message:");
 
-            log.warn( result.getCommandOutput() == null ? "" : result.getCommandOutput() );
-            
+            log.warn(result.getProviderMessage() == null ? "" : result.getProviderMessage());
+
+            log.warn("Command output:");
+
+            log.warn(result.getCommandOutput() == null ? "" : result.getCommandOutput());
+
             return false;
-        }
-        else 
-        {
+        } else {
             return true;
         }
     }
