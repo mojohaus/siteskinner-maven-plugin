@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import groovy.xml.XmlSlurper
+
 def siteXml =new File( basedir, 'target/siteskinner/src/site/site.xml') 
 assert siteXml.exists() 
 def projectNode = new XmlSlurper().parse( siteXml )

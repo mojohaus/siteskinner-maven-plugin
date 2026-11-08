@@ -16,5 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import groovy.xml.XmlSlurper
+
 def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml') )
 assert projectNode.custom.publishDate.text() == "2001-02-03"
