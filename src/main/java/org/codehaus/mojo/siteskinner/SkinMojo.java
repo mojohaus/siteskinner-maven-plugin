@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,10 +76,7 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.InvokerLogger;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.IOUtil;
-import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
-import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
@@ -202,7 +200,7 @@ public class SkinMojo extends AbstractMojo {
      * @return The input files encoding, never <code>null</code>.
      */
     private String getInputEncoding() {
-        return (inputEncoding == null) ? ReaderFactory.ISO_8859_1 : inputEncoding;
+        return (inputEncoding == null) ? StandardCharsets.ISO_8859_1.name() : inputEncoding;
     }
 
     /**
@@ -211,7 +209,7 @@ public class SkinMojo extends AbstractMojo {
      * @return The effective reporting output file encoding, never <code>null</code>.
      */
     private String getOutputEncoding() {
-        return (outputEncoding == null) ? WriterFactory.UTF_8 : outputEncoding;
+        return (outputEncoding == null) ? StandardCharsets.UTF_8.name() : outputEncoding;
     }
 
     @Component
@@ -414,11 +412,8 @@ public class SkinMojo extends AbstractMojo {
                 mergedCustom.addChild(publishDateChild);
                 releasedModel.setCustom(mergedCustom);
 
-                FileOutputStream fileOutputStream = new FileOutputStream(releasedSiteXml);
-                try {
+                try (FileOutputStream fileOutputStream = new FileOutputStream(releasedSiteXml)) {
                     writer.write(fileOutputStream, releasedModel);
-                } finally {
-                    IOUtil.close(fileOutputStream);
                 }
             }
         } catch (IOException e) {
@@ -508,14 +503,9 @@ public class SkinMojo extends AbstractMojo {
 
     private DecorationModel readDecorationModel(DecorationXpp3Reader reader, File currentSiteXml)
             throws IOException, XmlPullParserException {
-        DecorationModel currentModel;
-        FileInputStream fileInputStream = new FileInputStream(currentSiteXml);
-        try {
-            currentModel = reader.read(fileInputStream, false);
-        } finally {
-            IOUtil.close(fileInputStream);
+        try (FileInputStream fileInputStream = new FileInputStream(currentSiteXml)) {
+            return reader.read(fileInputStream, false);
         }
-        return currentModel;
     }
 
     /**
