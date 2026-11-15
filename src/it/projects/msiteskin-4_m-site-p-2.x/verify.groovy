@@ -18,4 +18,4 @@
  */
 def log = new File( basedir, 'build.log')
 assert log.exists()
-assert log.getText().contains( 'maven-site-plugin:2.3 can only be executed with Maven 2.x' )
+assert log.getText().contains( 'maven-site-plugin:2.3 of the released project is based on Doxia 1' )

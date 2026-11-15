@@ -7,8 +7,9 @@ The SiteSkinner Maven Plugin re-renders the site of the latest release of a proj
 project. It checks out the released sources through the `scm` connection of the released POM, merges the current
 skin and layout settings into the released `site.xml`, and runs `mvn site` on the checkout.
 
-It needs Maven 3.9.0 or later and Java 8 or later. The released project must use a maven-site-plugin that runs on
-the Maven doing the rendering; the plugin checks this before it starts.
+It needs Maven 3.9.0 or later and Java 8 or later. The plugin writes the released `site.xml` in the Doxia 2 site
+model, so the released project must use a maven-site-plugin based on Doxia 2 (3.20.0 or later), which the plugin checks
+before it starts. The current project's skin must be one that Doxia 2 renders, such as fluido 2.x.
 
 ## Usage
 

@@ -24,4 +24,4 @@ def projectNode = new XmlSlurper().parse( siteXml )
 assert projectNode.skin.size() == 1
 assert projectNode.skin.groupId == 'org.apache.maven.skins'
 assert projectNode.skin.artifactId == 'maven-fluido-skin'
-assert projectNode.skin.version == '1.12.0'
+assert projectNode.skin.version == '2.1.0'
