@@ -49,6 +49,7 @@ import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.doxia.site.decoration.Body;
 import org.apache.maven.doxia.site.decoration.DecorationModel;
 import org.apache.maven.doxia.site.decoration.PublishDate;
+import org.apache.maven.doxia.site.decoration.Skin;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
@@ -339,38 +340,8 @@ public class SkinMojo extends AbstractMojo {
                     releasedModel = new DecorationModel();
                 }
 
-                releasedModel.setSkin(resolvedCurrentModel.getSkin());
-                // MOJO-1827: Copy all layout-specific content
-                releasedModel.setBannerLeft(currentModel.getBannerLeft());
-                releasedModel.setBannerRight(currentModel.getBannerRight());
-                releasedModel.setGoogleAnalyticsAccountId(currentModel.getGoogleAnalyticsAccountId());
-                releasedModel.setModelEncoding(currentModel.getModelEncoding());
-                releasedModel.setName(currentModel.getName());
-                releasedModel.setPoweredBy(currentModel.getPoweredBy());
-                // the 1.11 getters never return null: copy only what the current descriptor sets, so that the
-                // released site still inherits these from its parent
-                releasedModel.setPublishDate(
-                        currentModel.isDefaultPublishDate() ? null : currentModel.getPublishDate());
-                releasedModel.setVersion(currentModel.isDefaultVersion() ? null : currentModel.getVersion());
-
-                if (mergeBody && currentModel.getBody() != null) {
-                    if (releasedModel.getBody() == null) {
-                        releasedModel.setBody(new Body());
-                    }
-                    releasedModel
-                            .getBody()
-                            .setBreadcrumbs(currentModel.getBody().getBreadcrumbs());
-                    releasedModel.getBody().setFooter(currentModel.getBody().getFooter());
-                    releasedModel.getBody().setHead(currentModel.getBody().getHead());
-                    releasedModel.getBody().setLinks(currentModel.getBody().getLinks());
-                }
-
-                Xpp3Dom mergedCustom = Xpp3DomUtils.mergeXpp3Dom(
-                        (Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom());
-
-                if (mergedCustom == null) {
-                    mergedCustom = new Xpp3Dom("custom");
-                }
+                Xpp3Dom mergedCustom =
+                        mergeDecorationModels(currentModel, resolvedCurrentModel.getSkin(), releasedModel, mergeBody);
 
                 String publishDateFormat;
                 if (releasedModel.getPublishDate() != null) {
@@ -517,10 +488,53 @@ public class SkinMojo extends AbstractMojo {
     }
 
     /**
+     * Copies the current project's skin and layout settings into the released project's site descriptor.
+     *
+     * @param currentModel the current project's own site descriptor, neither inherited nor interpolated
+     * @param skin the current project's skin, inheritance included
+     * @param releasedModel the released project's site descriptor, changed in place
+     * @param mergeBody whether to copy the breadcrumbs, head, footer and links of the body
+     * @return the merged {@code custom} element, where the current project's values win; never {@code null}
+     */
+    static Xpp3Dom mergeDecorationModels(
+            DecorationModel currentModel, Skin skin, DecorationModel releasedModel, boolean mergeBody) {
+        releasedModel.setSkin(skin);
+        // MOJO-1827: Copy all layout-specific content
+        releasedModel.setBannerLeft(currentModel.getBannerLeft());
+        releasedModel.setBannerRight(currentModel.getBannerRight());
+        releasedModel.setGoogleAnalyticsAccountId(currentModel.getGoogleAnalyticsAccountId());
+        releasedModel.setModelEncoding(currentModel.getModelEncoding());
+        releasedModel.setName(currentModel.getName());
+        releasedModel.setPoweredBy(currentModel.getPoweredBy());
+        // the 1.11 getters never return null: copy only what the current descriptor sets, so that the
+        // released site still inherits these from its parent
+        releasedModel.setPublishDate(currentModel.isDefaultPublishDate() ? null : currentModel.getPublishDate());
+        releasedModel.setVersion(currentModel.isDefaultVersion() ? null : currentModel.getVersion());
+
+        if (mergeBody && currentModel.getBody() != null) {
+            if (releasedModel.getBody() == null) {
+                releasedModel.setBody(new Body());
+            }
+            releasedModel.getBody().setBreadcrumbs(currentModel.getBody().getBreadcrumbs());
+            releasedModel.getBody().setFooter(currentModel.getBody().getFooter());
+            releasedModel.getBody().setHead(currentModel.getBody().getHead());
+            releasedModel.getBody().setLinks(currentModel.getBody().getLinks());
+        }
+
+        Xpp3Dom mergedCustom =
+                Xpp3DomUtils.mergeXpp3Dom((Xpp3Dom) currentModel.getCustom(), (Xpp3Dom) releasedModel.getCustom());
+
+        if (mergedCustom == null) {
+            mergedCustom = new Xpp3Dom("custom");
+        }
+        return mergedCustom;
+    }
+
+    /**
      * Writes the site descriptor without the empty {@code publishDate} and {@code version} elements that the 1.11
      * writer always emits: the site plugin would read them as set and stop inheriting the parent's values.
      */
-    private static void writeDecorationModel(DecorationXpp3Writer writer, DecorationModel model, File siteXml)
+    static void writeDecorationModel(DecorationXpp3Writer writer, DecorationModel model, File siteXml)
             throws IOException {
         StringWriter xml = new StringWriter();
         writer.write(xml, model);
@@ -556,9 +570,6 @@ public class SkinMojo extends AbstractMojo {
      * @throws MojoFailureException
      */
     private void verifyVersionCompatibility(MavenProject releasedProject) throws MojoFailureException {
-        // MOJO-1825: verify site-plugin-version with maven-version
-        ArtifactVersion sitePluginVersion = getSitePluginVersion(releasedProject);
-
         String mavenVersion;
         if (mavenHome == null) {
             mavenVersion = SelectorUtils.getMavenVersion();
@@ -566,6 +577,18 @@ public class SkinMojo extends AbstractMojo {
             mavenVersion = SelectorUtils.getMavenVersion(mavenHome);
         }
 
+        verifyVersionCompatibility(getSitePluginVersion(releasedProject), mavenVersion);
+    }
+
+    /**
+     * MOJO-1825: fails when the released project's maven-site-plugin cannot run on the Maven that renders the site.
+     *
+     * @param sitePluginVersion the released project's maven-site-plugin version, or {@code null} when it sets none
+     * @param mavenVersion the version of the Maven that renders the site
+     * @throws MojoFailureException if the two do not fit
+     */
+    static void verifyVersionCompatibility(ArtifactVersion sitePluginVersion, String mavenVersion)
+            throws MojoFailureException {
         if (sitePluginVersion != null) {
             try {
                 if (VersionRange.createFromVersionSpec("(,3.0-alpha-1)").containsVersion(sitePluginVersion)
@@ -599,7 +622,7 @@ public class SkinMojo extends AbstractMojo {
         return (Xpp3Dom) sitePlugin.getConfiguration();
     }
 
-    private ArtifactVersion getSitePluginVersion(MavenProject releasedProject) {
+    static ArtifactVersion getSitePluginVersion(MavenProject releasedProject) {
         ArtifactVersion sitePluginVersion = null;
         Plugin sitePlugin =
                 (Plugin) releasedProject.getBuild().getPluginsAsMap().get(MAVEN_SITE_PLUGIN_KEY);
