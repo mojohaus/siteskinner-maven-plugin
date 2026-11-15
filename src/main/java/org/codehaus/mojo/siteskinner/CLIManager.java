@@ -24,8 +24,8 @@ import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -46,22 +46,66 @@ public class CLIManager {
 
     private Options options;
 
-    @SuppressWarnings("static-access")
     public CLIManager() {
         options = new Options();
-        options.addOption(OptionBuilder.withLongOpt("define").hasArg().create(SET_SYSTEM_PROPERTY));
-        options.addOption(OptionBuilder.withLongOpt("debug").create(DEBUG));
-        options.addOption(
-                OptionBuilder.withLongOpt("activate-profiles").hasArg().create(ACTIVATE_PROFILES));
+        options.addOption(Option.builder(String.valueOf(SET_SYSTEM_PROPERTY))
+                .longOpt("define")
+                .hasArg()
+                .get());
+        options.addOption(Option.builder(String.valueOf(DEBUG)).longOpt("debug").get());
+        options.addOption(Option.builder(String.valueOf(ACTIVATE_PROFILES))
+                .longOpt("activate-profiles")
+                .hasArg()
+                .get());
     }
 
     public CommandLine parse(String[] args) throws ParseException {
         // We need to eat any quotes surrounding arguments...
-        String[] cleanArgs = cleanArgs(args);
+        String[] cleanArgs = splitAttachedValues(cleanArgs(args));
 
-        CommandLineParser parser = new GnuParser();
+        CommandLineParser parser = new DefaultParser();
 
         return parser.parse(options, cleanArgs);
+    }
+
+    /**
+     * Rewrites the value of an option that takes one into the {@code --long=value} form, as GnuParser read it:
+     * {@code -Dfoo=bar}, {@code -D foo=bar} and {@code -P -a} become {@code --define=foo=bar} and
+     * {@code --activate-profiles=-a}. DefaultParser reads {@code -Dfoo=bar} as the unknown option {@code -Dfoo}, and a
+     * separate value starting with {@code -} as an option.
+     */
+    private String[] splitAttachedValues(String[] args) {
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            Option option = null;
+            String value = null;
+            if (arg.length() >= 2 && arg.charAt(0) == '-' && arg.charAt(1) != '-') {
+                option = options.getOption(arg.substring(1, 2));
+                value = arg.length() > 2 ? arg.substring(2) : null;
+            } else if (arg.startsWith("--") && arg.indexOf('=') < 0) {
+                option = options.getOption(arg.substring(2));
+            }
+            if (option != null && option.hasArg()) {
+                if (value == null && i + 1 < args.length && !isOption(args[i + 1])) {
+                    value = args[++i];
+                }
+                if (value != null) {
+                    result.add("--" + option.getLongOpt() + "=" + value);
+                    continue;
+                }
+            }
+            result.add(arg);
+        }
+        return result.toArray(new String[0]);
+    }
+
+    private boolean isOption(String arg) {
+        if (arg.startsWith("--")) {
+            int eq = arg.indexOf('=');
+            return options.hasLongOption(eq < 0 ? arg.substring(2) : arg.substring(2, eq));
+        }
+        return arg.length() >= 2 && arg.charAt(0) == '-' && options.hasShortOption(arg.substring(1, 2));
     }
 
     private String[] cleanArgs(String[] args) {
