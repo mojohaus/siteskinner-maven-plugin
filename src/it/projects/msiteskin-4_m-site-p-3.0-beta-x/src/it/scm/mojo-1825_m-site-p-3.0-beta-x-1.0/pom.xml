@@ -2,29 +2,37 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>localhost</groupId>
-  <artifactId>mojo-1834</artifactId>
+  <artifactId>mojo-1825_m-site-p-3.0-beta-x</artifactId>
   <version>1.0</version>
-  <packaging>pom</packaging>
   
   <scm>
-    <developerConnection>scm:local|../../../src/it/scm|${project.artifactId}-${project.version}</developerConnection>
+    <developerConnection>scm:local|src/it/scm|${project.artifactId}-${project.version}</developerConnection>
   </scm>
 
-  <modules>
-    <module>mojo-1834-api</module>
-    <module>mojo-1834-impl</module>
-  </modules>
-  
   <build>
     <pluginManagement>
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.1</version>
+          <version>3.0-beta-3</version>
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>@project.groupId@</groupId>
+        <artifactId>@project.artifactId@</artifactId>
+        <version>@project.version@</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-provider-local</artifactId>
+            <version>1.7</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
   </build>
   
   <reporting>
