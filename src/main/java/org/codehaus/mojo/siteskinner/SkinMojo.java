@@ -38,18 +38,11 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.metadata.ArtifactMetadataRetrievalException;
-import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
-import org.apache.maven.artifact.resolver.ArtifactResolutionException;
-import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
-import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.doxia.site.decoration.Body;
 import org.apache.maven.doxia.site.decoration.DecorationModel;
@@ -58,16 +51,20 @@ import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
 import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
 import org.apache.maven.doxia.tools.SiteToolException;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.MavenProjectBuilder;
+import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
+import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.scm.manager.ScmManager;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.InvocationRequest;
@@ -81,6 +78,17 @@ import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.aether.DefaultRepositorySystemSession;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RepositoryPolicy;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
+import org.eclipse.aether.resolution.VersionRangeRequest;
+import org.eclipse.aether.resolution.VersionRangeResolutionException;
+import org.eclipse.aether.resolution.VersionRangeResult;
+import org.eclipse.aether.version.Version;
 
 /**
  * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it
@@ -233,20 +241,17 @@ public class SkinMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true)
     private List<ArtifactRepository> remoteRepositories;
 
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
+    private MavenSession session;
+
     @Component
-    private MavenProjectBuilder mavenProjectBuilder;
+    private ProjectBuilder projectBuilder;
+
+    @Component
+    private RepositorySystem repositorySystem;
 
     @Component
     private ScmManager scmManager;
-
-    @Component
-    private ArtifactMetadataSource metadataSource;
-
-    @Component
-    private ArtifactFactory factory;
-
-    @Component
-    private ArtifactResolver resolver;
 
     @Component
     private SiteTool siteTool;
@@ -260,12 +265,19 @@ public class SkinMojo extends AbstractMojo {
         Artifact releasedArtifact;
         try {
             releasedArtifact = resolveArtifact(releasedVersion);
-            MavenProject externalProject =
-                    mavenProjectBuilder.buildFromRepository(releasedArtifact, remoteRepositories, localRepository);
+            MavenProject externalProject = projectBuilder
+                    .build(
+                            RepositoryUtils.toArtifact(releasedArtifact),
+                            newProjectBuildingRequest(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL, false))
+                    .getProject();
 
             fetchSources(workingDirectory, externalProject);
 
-            releasedProject = mavenProjectBuilder.build(new File(workingDirectory, "pom.xml"), localRepository, null);
+            releasedProject = projectBuilder
+                    .build(
+                            new File(workingDirectory, "pom.xml"),
+                            newProjectBuildingRequest(ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0, true))
+                    .getProject();
         } catch (ProjectBuildingException e) {
             throw new MojoExecutionException(e.getMessage());
         }
@@ -377,10 +389,16 @@ public class SkinMojo extends AbstractMojo {
                     long preResolveDate = System.currentTimeMillis();
 
                     try {
-                        resolver.resolveAlways(releasedArtifact, remoteRepositories, localRepository);
+                        DefaultRepositorySystemSession alwaysUpdate =
+                                new DefaultRepositorySystemSession(session.getRepositorySession());
+                        alwaysUpdate.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
+                        releasedArtifact = repositorySystem
+                                .resolveArtifact(
+                                        alwaysUpdate,
+                                        new ArtifactRequest(
+                                                releasedArtifact, currentProject.getRemoteProjectRepositories(), null))
+                                .getArtifact();
                     } catch (ArtifactResolutionException e) {
-                        throw new MojoExecutionException(e.getMessage());
-                    } catch (ArtifactNotFoundException e) {
                         throw new MojoExecutionException(e.getMessage());
                     }
 
@@ -424,7 +442,8 @@ public class SkinMojo extends AbstractMojo {
 
         InvocationRequest request = buildInvokerRequest(releasedProject);
 
-        invoker.setLocalRepositoryDirectory(new File(localRepository.getBasedir()));
+        invoker.setLocalRepositoryDirectory(
+                session.getRepositorySession().getLocalRepository().getBasedir());
         invoker.setMavenHome(mavenHome);
 
         if (getLog().isDebugEnabled()) {
@@ -598,7 +617,7 @@ public class SkinMojo extends AbstractMojo {
     }
 
     private Artifact resolveArtifact(String versionSpec) throws MojoFailureException, MojoExecutionException {
-        // Find the previous version JAR and resolve it, and it's dependencies
+        // Find the newest released version in the range
         VersionRange range;
         try {
             range = VersionRange.createFromVersionSpec(versionSpec);
@@ -606,40 +625,33 @@ public class SkinMojo extends AbstractMojo {
             throw new MojoFailureException("Invalid comparison version: " + e.getMessage());
         }
 
-        Artifact previousArtifact;
+        String extension = currentProject.getArtifact().getArtifactHandler().getExtension();
+        Artifact rangeArtifact = new DefaultArtifact(
+                currentProject.getGroupId(), currentProject.getArtifactId(), extension, versionSpec);
+
+        getLog().debug("Searching for versions in range: " + range);
+        VersionRangeResult rangeResult;
         try {
-            previousArtifact = factory.createDependencyArtifact(
-                    currentProject.getGroupId(),
-                    currentProject.getArtifactId(),
-                    range,
-                    currentProject.getPackaging(),
-                    null,
-                    Artifact.SCOPE_COMPILE);
-
-            if (!previousArtifact.getVersionRange().isSelectedVersionKnown(previousArtifact)) {
-                getLog().debug("Searching for versions in range: " + previousArtifact.getVersionRange());
-                List<ArtifactVersion> availableVersions = metadataSource.retrieveAvailableVersions(
-                        previousArtifact, localRepository, currentProject.getRemoteArtifactRepositories());
-                filterSnapshots(availableVersions);
-                ArtifactVersion version = range.matchVersion(availableVersions);
-                if (version != null) {
-                    previousArtifact.selectVersion(version.toString());
-                }
-            }
-
-        } catch (OverConstrainedVersionException e1) {
-            throw new MojoFailureException("Invalid comparison version: " + e1.getMessage());
-        } catch (ArtifactMetadataRetrievalException e11) {
-            throw new MojoExecutionException("Error determining previous version: " + e11.getMessage(), e11);
+            rangeResult = repositorySystem.resolveVersionRange(
+                    session.getRepositorySession(),
+                    new VersionRangeRequest(rangeArtifact, currentProject.getRemoteProjectRepositories(), null));
+        } catch (VersionRangeResolutionException e) {
+            throw new MojoExecutionException("Error determining previous version: " + e.getMessage(), e);
         }
 
-        if (previousArtifact.getVersion() == null) {
-            getLog().info("Unable to find a previous version of the project in the repository");
-        } else {
-            getLog().debug("Previous version: " + previousArtifact.getVersion());
+        List<ArtifactVersion> availableVersions = new ArrayList<>();
+        for (Version version : rangeResult.getVersions()) {
+            availableVersions.add(new DefaultArtifactVersion(version.toString()));
         }
+        filterSnapshots(availableVersions);
+        ArtifactVersion version = range.matchVersion(availableVersions);
 
-        return previousArtifact;
+        if (version == null) {
+            throw new MojoFailureException("Unable to find a previous version of the project in the repository");
+        }
+        getLog().debug("Previous version: " + version);
+
+        return rangeArtifact.setVersion(version.toString());
     }
 
     private void filterSnapshots(List<ArtifactVersion> versions) {
@@ -648,6 +660,20 @@ public class SkinMojo extends AbstractMojo {
                 versionIterator.remove();
             }
         }
+    }
+
+    /**
+     * Released POMs are often old, so they are built at the validation levels maven-compat used for them, not at
+     * the strict default of a project building request.
+     */
+    private ProjectBuildingRequest newProjectBuildingRequest(int validationLevel, boolean processPlugins) {
+        ProjectBuildingRequest request = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
+        request.setProject(null);
+        request.setResolveDependencies(false);
+        request.setValidationLevel(validationLevel);
+        request.setProcessPlugins(processPlugins);
+        request.setRemoteRepositories(currentProject.getRemoteArtifactRepositories());
+        return request;
     }
 
     private void fetchSources(File checkoutDir, MavenProject mavenProject) throws MojoExecutionException {
