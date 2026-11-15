@@ -54,7 +54,7 @@
     <mavenVersion>3.9.16</mavenVersion>
     <minimalMavenBuildVersion>3.9.0</minimalMavenBuildVersion>
     <resolverVersion>1.9.27</resolverVersion>
-    <doxiaSitetoolsVersion>1.11.1</doxiaSitetoolsVersion>
+    <doxiaSitetoolsVersion>2.1.0</doxiaSitetoolsVersion>
     <scmVersion>2.2.1</scmVersion>
   </properties>
 
@@ -121,19 +121,13 @@
     </dependency>
     <dependency>
       <groupId>org.apache.maven.doxia</groupId>
-      <artifactId>doxia-decoration-model</artifactId>
+      <artifactId>doxia-site-model</artifactId>
       <version>${doxiaSitetoolsVersion}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.doxia</groupId>
       <artifactId>doxia-integration-tools</artifactId>
       <version>${doxiaSitetoolsVersion}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-container-default</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.shared</groupId>

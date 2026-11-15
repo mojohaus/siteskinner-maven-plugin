@@ -22,7 +22,6 @@ package org.codehaus.mojo.siteskinner;
 import javax.inject.Inject;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,17 +40,15 @@ import java.util.jar.JarFile;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.VersionRange;
-import org.apache.maven.doxia.site.decoration.Body;
-import org.apache.maven.doxia.site.decoration.DecorationModel;
-import org.apache.maven.doxia.site.decoration.PublishDate;
-import org.apache.maven.doxia.site.decoration.Skin;
-import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
-import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
+import org.apache.maven.doxia.site.Body;
+import org.apache.maven.doxia.site.PublishDate;
+import org.apache.maven.doxia.site.SiteModel;
+import org.apache.maven.doxia.site.Skin;
+import org.apache.maven.doxia.site.io.xpp3.SiteXpp3Writer;
 import org.apache.maven.doxia.tools.SiteTool;
 import org.apache.maven.doxia.tools.SiteToolException;
 import org.apache.maven.execution.MavenSession;
@@ -102,27 +99,14 @@ import org.eclipse.aether.version.Version;
 public class SkinMojo extends AbstractMojo {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
 
+    /** Site plugins that read the 2.0.0 site model. */
+    private static final String DOXIA_2_SITE_PLUGINS = "[3.20.0,4.0.0-M1),[4.0.0-M10,)";
+
+    /** Site plugins that read the 2.1.0 site model; older ones reject its new publishDate attributes. */
+    private static final String SITE_MODEL_2_1_SITE_PLUGINS = "[3.22.0,4.0.0-M1)";
+
     /**
-     * Some versions of the maven-site-plugin require a specific Maven version. This check is done by the siteskinner.
-     * You can fork the execution of the site generation to another version of maven by setting the {@code mavenHome}
-     * <table>
-     * <tr>
-     * <th>Maven Site Plugin version</th>
-     * <th>Required Maven version</th>
-     * </tr>
-     * <tr>
-     * <td>(,3.0-alpha-1)</td>
-     * <td>2.x</td>
-     * </tr>
-     * <tr>
-     * <td>[3.0-alpha-1,3.0)</td>
-     * <td>3.x</td>
-     * </tr>
-     * <tr>
-     * <td>[3.0,)</td>
-     * <td>2.x or 3.x</td>
-     * </tr>
-     * </table>
+     * The Maven installation that renders the released site. Defaults to the Maven that runs this plugin.
      * @since 1.1
      */
     @Parameter(property = "mavenHome")
@@ -212,22 +196,10 @@ public class SkinMojo extends AbstractMojo {
     private MavenProject currentProject;
 
     /**
-     * The local repository where the artifacts are located.
-     */
-    @Parameter(defaultValue = "${localRepository}", readonly = true, required = true)
-    private ArtifactRepository localRepository;
-
-    /**
      * @since 1.0
      */
     @Parameter(property = "settingsFile")
     private File settingsFile;
-
-    /**
-     * The remote repositories where artifacts are located.
-     */
-    @Parameter(defaultValue = "${project.remoteArtifactRepositories}", readonly = true, required = true)
-    private List<ArtifactRepository> remoteRepositories;
 
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
@@ -279,7 +251,7 @@ public class SkinMojo extends AbstractMojo {
             throw new MojoExecutionException(e.getMessage());
         }
 
-        verifyVersionCompatibility(releasedProject);
+        verifySitePluginVersion(releasedProject);
 
         Xpp3Dom releasedConfig = getSitePluginConfiguration(releasedProject);
         String releasedSiteDirectory = releasedConfig == null || releasedConfig.getChild("siteDirectory") == null
@@ -294,22 +266,22 @@ public class SkinMojo extends AbstractMojo {
                 ? "src/site"
                 : currentConfig.getChild("siteDirectory").getValue();
         try {
-            DecorationXpp3Writer writer = new DecorationXpp3Writer();
-            DecorationXpp3Reader reader = new DecorationXpp3Reader();
+            SiteXpp3Writer writer = new SiteXpp3Writer();
 
             File currentSiteDir = resolveSiteDirectory(currentProject.getBasedir(), currentSiteDirectory);
             File releasedSiteDir = resolveSiteDirectory(releasedProject.getBasedir(), releasedSiteDirectory);
 
             for (Locale locale : siteTool.getSiteLocales(releasedLocales)) {
-                DecorationModel resolvedCurrentModel;
+                SiteModel resolvedCurrentModel;
                 try {
-                    resolvedCurrentModel = siteTool.getDecorationModel(
+                    resolvedCurrentModel = siteTool.getSiteModel(
                             currentSiteDir,
                             locale,
+                            session.getRequest(),
                             currentProject,
                             reactorProjects,
-                            localRepository,
-                            remoteRepositories);
+                            session.getRepositorySession(),
+                            currentProject.getRemoteProjectRepositories());
                 } catch (SiteToolException e) {
                     getLog().warn(e.getMessage(), e);
                     continue;
@@ -322,26 +294,26 @@ public class SkinMojo extends AbstractMojo {
 
                 File currentSiteXml = siteTool.getSiteDescriptor(currentSiteDir, locale);
 
-                DecorationModel currentModel;
+                SiteModel currentModel;
                 if (currentSiteXml.exists()) {
-                    currentModel = readDecorationModel(reader, currentSiteXml);
+                    currentModel = SiteModels.read(currentSiteXml);
                 } else {
-                    currentModel = new DecorationModel();
+                    currentModel = new SiteModel();
                 }
 
                 File releasedSiteXml = siteTool.getSiteDescriptor(releasedSiteDir, locale);
 
-                DecorationModel releasedModel = null;
+                SiteModel releasedModel;
                 if (releasedSiteXml.exists()) {
-                    releasedModel = readDecorationModel(reader, releasedSiteXml);
+                    releasedModel = SiteModels.read(releasedSiteXml);
                 } else {
                     // already create folders to be sure we can write to this file
                     releasedSiteXml.getParentFile().mkdirs();
-                    releasedModel = new DecorationModel();
+                    releasedModel = new SiteModel();
                 }
 
                 Xpp3Dom mergedCustom =
-                        mergeDecorationModels(currentModel, resolvedCurrentModel.getSkin(), releasedModel, mergeBody);
+                        mergeSiteModels(currentModel, resolvedCurrentModel.getSkin(), releasedModel, mergeBody);
 
                 String publishDateFormat;
                 if (releasedModel.getPublishDate() != null) {
@@ -399,7 +371,10 @@ public class SkinMojo extends AbstractMojo {
                 mergedCustom.addChild(publishDateChild);
                 releasedModel.setCustom(mergedCustom);
 
-                writeDecorationModel(writer, releasedModel, releasedSiteXml);
+                if (!readsSiteModel21(getSitePluginVersion(releasedProject))) {
+                    dropSiteModel21Attributes(releasedModel);
+                }
+                writeSiteModel(writer, releasedModel, releasedSiteXml);
             }
         } catch (IOException e) {
             throw new MojoExecutionException(e.getMessage());
@@ -425,9 +400,14 @@ public class SkinMojo extends AbstractMojo {
 
         try {
             InvocationResult invocationResult = invoker.execute(request);
-            if (invocationResult.getExitCode() != 0) {
+            if (invocationResult.getExecutionException() != null) {
                 throw new MojoExecutionException(
-                        invocationResult.getExecutionException().getMessage());
+                        invocationResult.getExecutionException().getMessage(),
+                        invocationResult.getExecutionException());
+            }
+            if (invocationResult.getExitCode() != 0) {
+                throw new MojoExecutionException("The site build of the released project failed with exit code "
+                        + invocationResult.getExitCode());
             }
         } catch (MavenInvocationException e) {
             throw new MojoExecutionException(e.getMessage());
@@ -496,17 +476,15 @@ public class SkinMojo extends AbstractMojo {
      * @param mergeBody whether to copy the breadcrumbs, head, footer and links of the body
      * @return the merged {@code custom} element, where the current project's values win; never {@code null}
      */
-    static Xpp3Dom mergeDecorationModels(
-            DecorationModel currentModel, Skin skin, DecorationModel releasedModel, boolean mergeBody) {
+    static Xpp3Dom mergeSiteModels(SiteModel currentModel, Skin skin, SiteModel releasedModel, boolean mergeBody) {
         releasedModel.setSkin(skin);
         // MOJO-1827: Copy all layout-specific content
         releasedModel.setBannerLeft(currentModel.getBannerLeft());
         releasedModel.setBannerRight(currentModel.getBannerRight());
-        releasedModel.setGoogleAnalyticsAccountId(currentModel.getGoogleAnalyticsAccountId());
         releasedModel.setModelEncoding(currentModel.getModelEncoding());
         releasedModel.setName(currentModel.getName());
         releasedModel.setPoweredBy(currentModel.getPoweredBy());
-        // the 1.11 getters never return null: copy only what the current descriptor sets, so that the
+        // the getters never return null: copy only what the current descriptor sets, so that the
         // released site still inherits these from its parent
         releasedModel.setPublishDate(currentModel.isDefaultPublishDate() ? null : currentModel.getPublishDate());
         releasedModel.setVersion(currentModel.isDefaultVersion() ? null : currentModel.getVersion());
@@ -531,11 +509,10 @@ public class SkinMojo extends AbstractMojo {
     }
 
     /**
-     * Writes the site descriptor without the empty {@code publishDate} and {@code version} elements that the 1.11
-     * writer always emits: the site plugin would read them as set and stop inheriting the parent's values.
+     * Writes the site descriptor without the empty {@code publishDate} and {@code version} elements that the writer
+     * always emits: the site plugin would read them as set and stop inheriting the parent's values.
      */
-    static void writeDecorationModel(DecorationXpp3Writer writer, DecorationModel model, File siteXml)
-            throws IOException {
+    static void writeSiteModel(SiteXpp3Writer writer, SiteModel model, File siteXml) throws IOException {
         StringWriter xml = new StringWriter();
         writer.write(xml, model);
         String content = xml.toString();
@@ -555,57 +532,62 @@ public class SkinMojo extends AbstractMojo {
         return dir.isAbsolute() ? dir : new File(basedir, siteDirectory);
     }
 
-    private DecorationModel readDecorationModel(DecorationXpp3Reader reader, File currentSiteXml)
-            throws IOException, XmlPullParserException {
-        try (FileInputStream fileInputStream = new FileInputStream(currentSiteXml)) {
-            return reader.read(fileInputStream, false);
-        }
-    }
-
-    /**
-     * Verify is the Maven version can be used with the specified maven-site-plugin version, since the maven-site-plugin
-     * is not compatible with every Maven version.
-     *
-     * @param releasedProject
-     * @throws MojoFailureException
-     */
-    private void verifyVersionCompatibility(MavenProject releasedProject) throws MojoFailureException {
-        String mavenVersion;
-        if (mavenHome == null) {
-            mavenVersion = SelectorUtils.getMavenVersion();
+    private void verifySitePluginVersion(MavenProject releasedProject) throws MojoFailureException {
+        ArtifactVersion sitePluginVersion = getSitePluginVersion(releasedProject);
+        if (sitePluginVersion == null) {
+            getLog().warn("The released project does not set a maven-site-plugin version; the site plugin that Maven "
+                    + "binds by default must be based on Doxia 2 (3.20.0 or later)");
         } else {
-            mavenVersion = SelectorUtils.getMavenVersion(mavenHome);
+            verifySitePluginVersion(sitePluginVersion);
         }
-
-        verifyVersionCompatibility(getSitePluginVersion(releasedProject), mavenVersion);
     }
 
     /**
-     * MOJO-1825: fails when the released project's maven-site-plugin cannot run on the Maven that renders the site.
+     * The merged site descriptor is written in the 2.0.0 site model, which only a maven-site-plugin based on Doxia 2
+     * reads: 3.20.0 or later, or 4.0.0-M13 or later.
      *
-     * @param sitePluginVersion the released project's maven-site-plugin version, or {@code null} when it sets none
-     * @param mavenVersion the version of the Maven that renders the site
-     * @throws MojoFailureException if the two do not fit
+     * @param sitePluginVersion the released project's maven-site-plugin version
+     * @throws MojoFailureException if that version is based on Doxia 1
      */
-    static void verifyVersionCompatibility(ArtifactVersion sitePluginVersion, String mavenVersion)
-            throws MojoFailureException {
-        if (sitePluginVersion != null) {
-            try {
-                if (VersionRange.createFromVersionSpec("(,3.0-alpha-1)").containsVersion(sitePluginVersion)
-                        && VersionRange.createFromVersionSpec("[3.0,)")
-                                .containsVersion(new DefaultArtifactVersion(mavenVersion))) {
-                    throw new MojoFailureException(
-                            "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 2.x");
-                } else if (VersionRange.createFromVersionSpec("[3.0-alpha-1,3.0)")
-                                .containsVersion(sitePluginVersion)
-                        && VersionRange.createFromVersionSpec("(, 3.0)")
-                                .containsVersion(new DefaultArtifactVersion(mavenVersion))) {
-                    throw new MojoFailureException(
-                            "maven-site-plugin:" + sitePluginVersion + " can only be executed with Maven 3.x+");
-                }
-            } catch (InvalidVersionSpecificationException e) {
-                throw new MojoFailureException(e.getMessage());
+    static void verifySitePluginVersion(ArtifactVersion sitePluginVersion) throws MojoFailureException {
+        try {
+            if (!VersionRange.createFromVersionSpec(DOXIA_2_SITE_PLUGINS).containsVersion(sitePluginVersion)) {
+                throw new MojoFailureException("maven-site-plugin:" + sitePluginVersion
+                        + " of the released project is based on Doxia 1 and cannot read the re-skinned site"
+                        + " descriptor; re-skinning needs maven-site-plugin 3.20.0 or later");
             }
+        } catch (InvalidVersionSpecificationException e) {
+            throw new MojoFailureException(e.getMessage());
+        }
+    }
+
+    /**
+     * @param sitePluginVersion the released project's maven-site-plugin version, or {@code null} when it sets none
+     * @return whether that site plugin reads the 2.1.0 site model; {@code false} when unknown
+     */
+    static boolean readsSiteModel21(ArtifactVersion sitePluginVersion) {
+        try {
+            return sitePluginVersion != null
+                    && VersionRange.createFromVersionSpec(SITE_MODEL_2_1_SITE_PLUGINS)
+                            .containsVersion(sitePluginVersion);
+        } catch (InvalidVersionSpecificationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Removes what only the 2.1.0 site model has, so that a site plugin based on Doxia Sitetools 2.0.0 can read the
+     * descriptor: its reader is strict and fails on the publishDate attributes added in 2.1.0.
+     *
+     * @param model the site model to change in place
+     */
+    static void dropSiteModel21Attributes(SiteModel model) {
+        if (!model.isDefaultPublishDate()) {
+            PublishDate publishDate = model.getPublishDate();
+            publishDate.setValue(null);
+            publishDate.setPrefix(null);
+            publishDate.setFallbackValue(null);
+            publishDate.setFallbackPrefix(null);
         }
     }
 

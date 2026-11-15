@@ -23,5 +23,5 @@ assert siteXml.exists()
 def projectNode = new XmlSlurper().parse( siteXml )
 assert projectNode.skin.size() == 1
 assert projectNode.skin.groupId == 'org.apache.maven.skins'
-assert projectNode.skin.artifactId == 'maven-stylus-skin'
-assert projectNode.skin.version == '1.0'
+assert projectNode.skin.artifactId == 'maven-fluido-skin'
+assert projectNode.skin.version == '2.0.1'

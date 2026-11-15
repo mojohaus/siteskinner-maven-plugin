@@ -28,9 +28,6 @@ updates:
       # plexus-xml 4.x depends on the Maven 4 XML API.
       - dependency-name: "org.codehaus.plexus:plexus-xml"
         versions: [">= 4.0.0"]
-      # Doxia 2 is a separate migration, see #7.
-      - dependency-name: "org.apache.maven.doxia:*"
-        versions: [">= 2.0.0-M1"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

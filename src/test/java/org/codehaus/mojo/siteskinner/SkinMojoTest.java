@@ -27,17 +27,17 @@ import java.nio.file.Path;
 import java.util.Collections;
 
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import org.apache.maven.doxia.site.decoration.Banner;
-import org.apache.maven.doxia.site.decoration.Body;
-import org.apache.maven.doxia.site.decoration.DecorationModel;
-import org.apache.maven.doxia.site.decoration.LinkItem;
-import org.apache.maven.doxia.site.decoration.Logo;
-import org.apache.maven.doxia.site.decoration.Menu;
-import org.apache.maven.doxia.site.decoration.PublishDate;
-import org.apache.maven.doxia.site.decoration.Skin;
-import org.apache.maven.doxia.site.decoration.Version;
-import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Reader;
-import org.apache.maven.doxia.site.decoration.io.xpp3.DecorationXpp3Writer;
+import org.apache.maven.doxia.site.Banner;
+import org.apache.maven.doxia.site.Body;
+import org.apache.maven.doxia.site.LinkItem;
+import org.apache.maven.doxia.site.Logo;
+import org.apache.maven.doxia.site.Menu;
+import org.apache.maven.doxia.site.PublishDate;
+import org.apache.maven.doxia.site.SiteModel;
+import org.apache.maven.doxia.site.Skin;
+import org.apache.maven.doxia.site.Version;
+import org.apache.maven.doxia.site.io.xpp3.SiteXpp3Reader;
+import org.apache.maven.doxia.site.io.xpp3.SiteXpp3Writer;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
@@ -67,29 +67,29 @@ class SkinMojoTest {
     class VersionCheck {
 
         @ParameterizedTest
-        @CsvSource({
-            "2.3, 3.9.16, Maven 2.x",
-            "2.0-beta-6, 3.0, Maven 2.x",
-            "3.0-beta-3, 2.2.1, Maven 3.x+",
-            "3.0-alpha-1, 2.0.11, Maven 3.x+"
-        })
-        void rejectsSitePluginThatCannotRunOnMaven(String sitePlugin, String maven, String expected) {
+        @CsvSource({"2.3", "3.0-beta-3", "3.12.1", "3.19.1", "4.0.0-M1", "4.0.0-M9"})
+        void rejectsSitePluginOnDoxia1(String sitePlugin) {
             MojoFailureException e = assertThrows(
                     MojoFailureException.class,
-                    () -> SkinMojo.verifyVersionCompatibility(new DefaultArtifactVersion(sitePlugin), maven));
-            assertEquals("maven-site-plugin:" + sitePlugin + " can only be executed with " + expected, e.getMessage());
+                    () -> SkinMojo.verifySitePluginVersion(new DefaultArtifactVersion(sitePlugin)));
+            assertTrue(e.getMessage().startsWith("maven-site-plugin:" + sitePlugin + " of the released project"));
         }
 
         @ParameterizedTest
-        @CsvSource({"2.3, 2.2.1", "3.0, 3.9.16", "3.12.1, 3.9.16", "3.12.1, 3.10.0", "3.0-beta-3, 3.0"})
-        void acceptsSitePluginThatRunsOnMaven(String sitePlugin, String maven) {
-            assertDoesNotThrow(
-                    () -> SkinMojo.verifyVersionCompatibility(new DefaultArtifactVersion(sitePlugin), maven));
+        @CsvSource({"3.20.0", "3.21.0", "3.22.0", "4.0.0-M10", "4.0.0-M16"})
+        void acceptsSitePluginOnDoxia2(String sitePlugin) {
+            assertDoesNotThrow(() -> SkinMojo.verifySitePluginVersion(new DefaultArtifactVersion(sitePlugin)));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"3.22.0, true", "3.23.0, true", "3.21.0, false", "3.20.0, false", "4.0.0-M16, false"})
+        void siteModel21Readers(String sitePlugin, boolean expected) {
+            assertEquals(expected, SkinMojo.readsSiteModel21(new DefaultArtifactVersion(sitePlugin)));
         }
 
         @Test
-        void acceptsProjectWithoutSitePluginVersion() {
-            assertDoesNotThrow(() -> SkinMojo.verifyVersionCompatibility(null, "3.9.16"));
+        void unknownSitePluginDoesNotReadSiteModel21() {
+            assertFalse(SkinMojo.readsSiteModel21(null));
         }
 
         @Test
@@ -144,26 +144,24 @@ class SkinMojoTest {
 
         @Test
         void copiesSkinAndLayoutAndKeepsReleasedContent() {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setBannerLeft(banner("current-left"));
             current.setBannerRight(banner("current-right"));
-            current.setGoogleAnalyticsAccountId("UA-1");
             current.setName("Current");
             current.setModelEncoding("ISO-8859-1");
             current.setPoweredBy(Collections.singletonList(logo("current-logo")));
 
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setBannerLeft(banner("released-left"));
             released.setName("Released");
             released.setBody(body("released-link"));
             released.getBody().addMenu(new Menu());
 
-            SkinMojo.mergeDecorationModels(current, skin, released, false);
+            SkinMojo.mergeSiteModels(current, skin, released, false);
 
             assertSame(skin, released.getSkin());
             assertEquals("current-left", released.getBannerLeft().getName());
             assertEquals("current-right", released.getBannerRight().getName());
-            assertEquals("UA-1", released.getGoogleAnalyticsAccountId());
             assertEquals("Current", released.getName());
             assertEquals("ISO-8859-1", released.getModelEncoding());
             assertEquals("current-logo", released.getPoweredBy().get(0).getName());
@@ -173,11 +171,11 @@ class SkinMojoTest {
 
         @Test
         void layoutUnsetInCurrentIsClearedInReleased() {
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setBannerLeft(banner("released-left"));
             released.setPublishDate(publishDate("right"));
 
-            SkinMojo.mergeDecorationModels(new DecorationModel(), skin, released, false);
+            SkinMojo.mergeSiteModels(new SiteModel(), skin, released, false);
 
             assertNull(released.getBannerLeft());
             assertTrue(released.isDefaultPublishDate());
@@ -186,14 +184,14 @@ class SkinMojoTest {
 
         @Test
         void copiesPublishDateAndVersionOnlyWhenSet() {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setPublishDate(publishDate("right"));
             Version version = new Version();
             version.setPosition("none");
             current.setVersion(version);
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
 
-            SkinMojo.mergeDecorationModels(current, skin, released, false);
+            SkinMojo.mergeSiteModels(current, skin, released, false);
 
             assertEquals("right", released.getPublishDate().getPosition());
             assertEquals("none", released.getVersion().getPosition());
@@ -201,16 +199,16 @@ class SkinMojoTest {
 
         @Test
         void mergesBodyOnRequest() {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setBody(body("current-link"));
             current.getBody().setHead("<meta name=\"current\"/>");
             current.getBody().setFooter("current footer");
             current.getBody().addBreadcrumb(link("current-crumb"));
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setBody(body("released-link"));
             released.getBody().addMenu(new Menu());
 
-            SkinMojo.mergeDecorationModels(current, skin, released, true);
+            SkinMojo.mergeSiteModels(current, skin, released, true);
 
             assertEquals("current-link", released.getBody().getLinks().get(0).getName());
             assertEquals("<meta name=\"current\"/>", released.getBody().getHead());
@@ -222,46 +220,46 @@ class SkinMojoTest {
 
         @Test
         void leavesBodyWithoutMergeBody() {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setBody(body("current-link"));
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setBody(body("released-link"));
 
-            SkinMojo.mergeDecorationModels(current, skin, released, false);
+            SkinMojo.mergeSiteModels(current, skin, released, false);
 
             assertEquals("released-link", released.getBody().getLinks().get(0).getName());
         }
 
         @Test
         void mergeBodyCreatesReleasedBody() {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setBody(body("current-link"));
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
 
-            SkinMojo.mergeDecorationModels(current, skin, released, true);
+            SkinMojo.mergeSiteModels(current, skin, released, true);
 
             assertEquals("current-link", released.getBody().getLinks().get(0).getName());
         }
 
         @Test
         void mergeBodyWithoutCurrentBodyLeavesReleasedBody() {
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setBody(body("released-link"));
 
-            SkinMojo.mergeDecorationModels(new DecorationModel(), skin, released, true);
+            SkinMojo.mergeSiteModels(new SiteModel(), skin, released, true);
 
             assertEquals("released-link", released.getBody().getLinks().get(0).getName());
         }
 
         @Test
         void mergesCustomWithCurrentValuesFirst() throws Exception {
-            DecorationModel current = new DecorationModel();
+            SiteModel current = new SiteModel();
             current.setCustom(dom("<custom><fluidoSkin><topBarEnabled>true</topBarEnabled></fluidoSkin></custom>"));
-            DecorationModel released = new DecorationModel();
+            SiteModel released = new SiteModel();
             released.setCustom(dom("<custom><fluidoSkin><topBarEnabled>false</topBarEnabled>"
                     + "<sideBarEnabled>false</sideBarEnabled></fluidoSkin><old>kept</old></custom>"));
 
-            Xpp3Dom custom = SkinMojo.mergeDecorationModels(current, skin, released, false);
+            Xpp3Dom custom = SkinMojo.mergeSiteModels(current, skin, released, false);
 
             assertEquals(
                     "true",
@@ -274,7 +272,7 @@ class SkinMojoTest {
 
         @Test
         void customIsNeverNull() {
-            Xpp3Dom custom = SkinMojo.mergeDecorationModels(new DecorationModel(), skin, new DecorationModel(), false);
+            Xpp3Dom custom = SkinMojo.mergeSiteModels(new SiteModel(), skin, new SiteModel(), false);
 
             assertNotNull(custom);
             assertEquals("custom", custom.getName());
@@ -290,7 +288,7 @@ class SkinMojoTest {
 
         @Test
         void omitsUnsetPublishDateAndVersion() throws Exception {
-            DecorationModel model = new DecorationModel();
+            SiteModel model = new SiteModel();
             model.setSkin(skin("1.12.0"));
 
             String xml = write(model);
@@ -298,28 +296,57 @@ class SkinMojoTest {
             assertFalse(xml.contains("<publishDate"), xml);
             assertTrue(xml.contains("<version>1.12.0</version>"), xml);
             assertFalse(xml.contains("<version />") || xml.contains("<version/>"), xml);
-            DecorationModel read = new DecorationXpp3Reader().read(new StringReader(xml));
+            SiteModel read = new SiteXpp3Reader().read(new StringReader(xml));
             assertTrue(read.isDefaultPublishDate());
             assertTrue(read.isDefaultVersion());
         }
 
         @Test
         void keepsSetPublishDateAndVersion() throws Exception {
-            DecorationModel model = new DecorationModel();
+            SiteModel model = new SiteModel();
             model.setPublishDate(publishDate("right"));
             Version version = new Version();
             version.setPosition("left");
             model.setVersion(version);
 
-            DecorationModel read = new DecorationXpp3Reader().read(new StringReader(write(model)));
+            SiteModel read = new SiteXpp3Reader().read(new StringReader(write(model)));
 
             assertEquals("right", read.getPublishDate().getPosition());
             assertEquals("left", read.getVersion().getPosition());
         }
 
-        private String write(DecorationModel model) throws Exception {
+        @Test
+        void dropsSiteModel21Attributes() throws Exception {
+            SiteModel model = new SiteModel();
+            PublishDate publishDate = publishDate("right");
+            publishDate.setFormat("yyyy-MM-dd");
+            publishDate.setValue("scmLastModified");
+            publishDate.setPrefix("Updated: ");
+            publishDate.setFallbackValue("buildTimestamp");
+            publishDate.setFallbackPrefix("Built: ");
+            model.setPublishDate(publishDate);
+
+            SkinMojo.dropSiteModel21Attributes(model);
+            String xml = write(model);
+
+            assertFalse(xml.contains("scmLastModified") || xml.contains("Updated") || xml.contains("Built"), xml);
+            SiteModel read = new SiteXpp3Reader().read(new StringReader(xml));
+            assertEquals("right", read.getPublishDate().getPosition());
+            assertEquals("yyyy-MM-dd", read.getPublishDate().getFormat());
+        }
+
+        @Test
+        void dropSiteModel21AttributesKeepsDefaultPublishDate() {
+            SiteModel model = new SiteModel();
+
+            SkinMojo.dropSiteModel21Attributes(model);
+
+            assertTrue(model.isDefaultPublishDate());
+        }
+
+        private String write(SiteModel model) throws Exception {
             File siteXml = dir.resolve("site.xml").toFile();
-            SkinMojo.writeDecorationModel(new DecorationXpp3Writer(), model, siteXml);
+            SkinMojo.writeSiteModel(new SiteXpp3Writer(), model, siteXml);
             return new String(Files.readAllBytes(siteXml.toPath()), StandardCharsets.UTF_8);
         }
     }
