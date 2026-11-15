@@ -54,7 +54,7 @@
     <mavenVersion>3.9.16</mavenVersion>
     <minimalMavenBuildVersion>3.9.0</minimalMavenBuildVersion>
     <resolverVersion>1.9.27</resolverVersion>
-    <scmVersion>1.8</scmVersion>
+    <scmVersion>2.2.1</scmVersion>
   </properties>
 
   <dependencies>
@@ -138,6 +138,13 @@
       <artifactId>maven-scm-providers-standard</artifactId>
       <version>${scmVersion}</version>
       <type>pom</type>
+      <scope>runtime</scope>
+    </dependency>
+    <!-- not in the 2.x standard set; re-skinning a release whose POM uses scm:local needs it -->
+    <dependency>
+      <groupId>org.apache.maven.scm</groupId>
+      <artifactId>maven-scm-provider-local</artifactId>
+      <version>${scmVersion}</version>
       <scope>runtime</scope>
     </dependency>
   </dependencies>
