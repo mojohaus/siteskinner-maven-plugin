@@ -23,7 +23,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -171,14 +172,18 @@ public class SkinMojo extends AbstractMojo {
     /**
      * Specifies the input encoding.
      * @since 1.0
+     * @deprecated ignored since 1.1: the site descriptor is read with the encoding its XML declaration names.
      */
+    @Deprecated
     @Parameter(defaultValue = "${project.build.sourceEncoding}", property = "encoding")
     private String inputEncoding;
 
     /**
      * Specifies the output encoding.
      * @since 1.0
+     * @deprecated ignored since 1.1: the re-rendered site uses the encoding of the released project.
      */
+    @Deprecated
     @Parameter(defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding")
     private String outputEncoding;
 
@@ -201,24 +206,6 @@ public class SkinMojo extends AbstractMojo {
      */
     @Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
-
-    /**
-     * Gets the input files encoding.
-     *
-     * @return The input files encoding, never <code>null</code>.
-     */
-    private String getInputEncoding() {
-        return (inputEncoding == null) ? StandardCharsets.ISO_8859_1.name() : inputEncoding;
-    }
-
-    /**
-     * Gets the effective reporting output files encoding.
-     *
-     * @return The effective reporting output file encoding, never <code>null</code>.
-     */
-    private String getOutputEncoding() {
-        return (outputEncoding == null) ? StandardCharsets.UTF_8.name() : outputEncoding;
-    }
 
     @Component
     private MavenProject currentProject;
@@ -300,18 +287,19 @@ public class SkinMojo extends AbstractMojo {
             DecorationXpp3Writer writer = new DecorationXpp3Writer();
             DecorationXpp3Reader reader = new DecorationXpp3Reader();
 
-            for (Locale locale : siteTool.getAvailableLocales(releasedLocales)) {
+            File currentSiteDir = resolveSiteDirectory(currentProject.getBasedir(), currentSiteDirectory);
+            File releasedSiteDir = resolveSiteDirectory(releasedProject.getBasedir(), releasedSiteDirectory);
+
+            for (Locale locale : siteTool.getSiteLocales(releasedLocales)) {
                 DecorationModel resolvedCurrentModel;
                 try {
                     resolvedCurrentModel = siteTool.getDecorationModel(
+                            currentSiteDir,
+                            locale,
                             currentProject,
                             reactorProjects,
                             localRepository,
-                            remoteRepositories,
-                            currentSiteDirectory,
-                            locale,
-                            getInputEncoding(),
-                            getOutputEncoding());
+                            remoteRepositories);
                 } catch (SiteToolException e) {
                     getLog().warn(e.getMessage(), e);
                     continue;
@@ -322,8 +310,7 @@ public class SkinMojo extends AbstractMojo {
                             "No skin defined in the current project, neither inherited; Can't apply a new skin on the old site.");
                 }
 
-                File currentSiteXml = siteTool.getSiteDescriptorFromBasedir(
-                        currentSiteDirectory, currentProject.getBasedir(), locale);
+                File currentSiteXml = siteTool.getSiteDescriptor(currentSiteDir, locale);
 
                 DecorationModel currentModel;
                 if (currentSiteXml.exists()) {
@@ -332,8 +319,7 @@ public class SkinMojo extends AbstractMojo {
                     currentModel = new DecorationModel();
                 }
 
-                File releasedSiteXml = siteTool.getSiteDescriptorFromBasedir(
-                        releasedSiteDirectory, releasedProject.getBasedir(), locale);
+                File releasedSiteXml = siteTool.getSiteDescriptor(releasedSiteDir, locale);
 
                 DecorationModel releasedModel = null;
                 if (releasedSiteXml.exists()) {
@@ -352,8 +338,11 @@ public class SkinMojo extends AbstractMojo {
                 releasedModel.setModelEncoding(currentModel.getModelEncoding());
                 releasedModel.setName(currentModel.getName());
                 releasedModel.setPoweredBy(currentModel.getPoweredBy());
-                releasedModel.setPublishDate(currentModel.getPublishDate());
-                releasedModel.setVersion(currentModel.getVersion());
+                // the 1.11 getters never return null: copy only what the current descriptor sets, so that the
+                // released site still inherits these from its parent
+                releasedModel.setPublishDate(
+                        currentModel.isDefaultPublishDate() ? null : currentModel.getPublishDate());
+                releasedModel.setVersion(currentModel.isDefaultVersion() ? null : currentModel.getVersion());
 
                 if (mergeBody && currentModel.getBody() != null) {
                     if (releasedModel.getBody() == null) {
@@ -430,9 +419,7 @@ public class SkinMojo extends AbstractMojo {
                 mergedCustom.addChild(publishDateChild);
                 releasedModel.setCustom(mergedCustom);
 
-                try (FileOutputStream fileOutputStream = new FileOutputStream(releasedSiteXml)) {
-                    writer.write(fileOutputStream, releasedModel);
-                }
+                writeDecorationModel(writer, releasedModel, releasedSiteXml);
             }
         } catch (IOException e) {
             throw new MojoExecutionException(e.getMessage());
@@ -518,6 +505,31 @@ public class SkinMojo extends AbstractMojo {
             }
         }
         return request;
+    }
+
+    /**
+     * Writes the site descriptor without the empty {@code publishDate} and {@code version} elements that the 1.11
+     * writer always emits: the site plugin would read them as set and stop inheriting the parent's values.
+     */
+    private static void writeDecorationModel(DecorationXpp3Writer writer, DecorationModel model, File siteXml)
+            throws IOException {
+        StringWriter xml = new StringWriter();
+        writer.write(xml, model);
+        String content = xml.toString();
+        if (model.isDefaultPublishDate()) {
+            content = content.replaceFirst("\\s*<publishDate\\s*/>", "");
+        }
+        if (model.isDefaultVersion()) {
+            content = content.replaceFirst("\\s*<version\\s*/>", "");
+        }
+        try (OutputStream out = new FileOutputStream(siteXml)) {
+            out.write(content.getBytes(model.getModelEncoding()));
+        }
+    }
+
+    private static File resolveSiteDirectory(File basedir, String siteDirectory) {
+        File dir = new File(siteDirectory);
+        return dir.isAbsolute() ? dir : new File(basedir, siteDirectory);
     }
 
     private DecorationModel readDecorationModel(DecorationXpp3Reader reader, File currentSiteXml)
