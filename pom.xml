@@ -53,7 +53,7 @@
   <properties>
     <mavenVersion>3.9.16</mavenVersion>
     <minimalMavenBuildVersion>3.9.0</minimalMavenBuildVersion>
-    <resolverVersion>1.9.27</resolverVersion>
+    <resolverVersion>2.0.25</resolverVersion>
     <scmVersion>2.2.1</scmVersion>
   </properties>
 
