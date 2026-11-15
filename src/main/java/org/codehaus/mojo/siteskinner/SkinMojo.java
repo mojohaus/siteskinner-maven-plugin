@@ -19,6 +19,8 @@ package org.codehaus.mojo.siteskinner;
  * under the License.
  */
 
+import javax.inject.Inject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -27,7 +29,6 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,6 @@ import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
@@ -207,7 +207,7 @@ public class SkinMojo extends AbstractMojo {
     @Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
 
-    @Component
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject currentProject;
 
     /**
@@ -231,20 +231,29 @@ public class SkinMojo extends AbstractMojo {
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
 
-    @Component
-    private ProjectBuilder projectBuilder;
+    private final ProjectBuilder projectBuilder;
 
-    @Component
-    private RepositorySystem repositorySystem;
+    private final RepositorySystem repositorySystem;
 
-    @Component
-    private ScmManager scmManager;
+    private final ScmManager scmManager;
 
-    @Component
-    private SiteTool siteTool;
+    private final SiteTool siteTool;
 
-    @Component
-    private Invoker invoker;
+    private final Invoker invoker;
+
+    @Inject
+    public SkinMojo(
+            ProjectBuilder projectBuilder,
+            RepositorySystem repositorySystem,
+            ScmManager scmManager,
+            SiteTool siteTool,
+            Invoker invoker) {
+        this.projectBuilder = projectBuilder;
+        this.repositorySystem = repositorySystem;
+        this.scmManager = scmManager;
+        this.siteTool = siteTool;
+        this.invoker = invoker;
+    }
 
     /** {@inheritDoc} */
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -456,7 +465,7 @@ public class SkinMojo extends AbstractMojo {
 
     private InvocationRequest buildInvokerRequest(MavenProject releasedProject) throws MojoFailureException {
         InvocationRequest request = new DefaultInvocationRequest();
-        request.setGoals(Collections.singletonList(siteDeploy ? "site-deploy" : "site"));
+        request.addArg(siteDeploy ? "site-deploy" : "site");
         request.setPomFile(releasedProject.getFile());
         request.setShowErrors(true);
         request.setUserSettingsFile(settingsFile);
