@@ -20,3 +20,7 @@ import groovy.xml.XmlSlurper
 
 def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml') )
 assert projectNode.custom.publishDate.text() == "2001-02-03"
+
+// Doxia 2 skins show the date maven-site-plugin takes from project.build.outputTimestamp
+def index = new File( basedir, 'target/siteskinner/target/site/index.html' ).text
+assert index.contains( 'Last Published: 2001-02-03' )

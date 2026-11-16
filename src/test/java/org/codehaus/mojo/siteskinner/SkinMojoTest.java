@@ -24,7 +24,9 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.doxia.site.Banner;
@@ -277,6 +279,49 @@ class SkinMojoTest {
             assertNotNull(custom);
             assertEquals("custom", custom.getName());
             assertEquals(0, custom.getChildCount());
+        }
+    }
+
+    @Nested
+    class OutputTimestamp {
+
+        private final Date released = Date.from(Instant.parse("2012-10-05T14:51:21.123Z"));
+
+        @Test
+        void passesTheDeployDateWhenTheReleaseHasNoTimestamp() {
+            assertEquals("2012-10-05T14:51:21Z", SkinMojo.outputTimestamp(released, false, null));
+        }
+
+        @Test
+        void keepsTheReleasedTimestamp() {
+            assertNull(SkinMojo.outputTimestamp(released, false, "2012-10-05T10:00:00Z"));
+        }
+
+        @Test
+        void ignoresADisabledReleasedTimestamp() {
+            assertEquals("2012-10-05T14:51:21Z", SkinMojo.outputTimestamp(released, false, "a"));
+        }
+
+        @Test
+        void explicitPublishDateWins() {
+            assertEquals("2012-10-05T14:51:21Z", SkinMojo.outputTimestamp(released, true, "2020-01-01T00:00:00Z"));
+        }
+
+        @Test
+        void parsesInTheSiteTimeZone() throws Exception {
+            PublishDate utc = new PublishDate();
+            Date date = SkinMojo.publishDateFormat(utc).parse("2001-02-03");
+            assertEquals("2001-02-03T00:00:00Z", SkinMojo.outputTimestamp(date, true, null));
+
+            PublishDate warsaw = new PublishDate();
+            warsaw.setTimezone("Europe/Warsaw");
+            date = SkinMojo.publishDateFormat(warsaw).parse("2001-02-03");
+            assertEquals("2001-02-02T23:00:00Z", SkinMojo.outputTimestamp(date, true, null));
+        }
+
+        @Test
+        void nothingWithoutADate() {
+            assertNull(SkinMojo.outputTimestamp(null, true, null));
         }
     }
 
