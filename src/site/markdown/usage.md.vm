@@ -68,6 +68,6 @@ Publish date
 
 The re-rendered site shows the original publish date: the `publishDate` parameter when set, otherwise the date the
 released artifact was built or deployed. Doxia 2 skins such as fluido 2.x show the date that maven-site-plugin takes
-from `project.build.outputTimestamp`, so the plugin passes that property to the site build. A release whose POM sets
-`project.build.outputTimestamp` keeps its own value unless `publishDate` is set. The date is also written into the
+from `project.build.outputTimestamp`, so the plugin passes that property to the site build. A release whose own POM sets
+`project.build.outputTimestamp`, not only its parent, keeps that value unless `publishDate` is set. The date is also written into the
 `custom/publishDate` element of the released `site.xml`, for skins that read it.
