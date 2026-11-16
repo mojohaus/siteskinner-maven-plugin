@@ -107,7 +107,7 @@ public class SkinMojo extends AbstractMojo {
 
     /**
      * The Maven installation that renders the released site. Defaults to the Maven that runs this plugin.
-     * @since 1.1
+     * @since 2.0.0
      */
     @Parameter(property = "mavenHome")
     private File mavenHome;
@@ -119,7 +119,7 @@ public class SkinMojo extends AbstractMojo {
      *   <li>-P,--activate-profiles &lt;arg&gt;</li>
      *   <li>-X,--debug</li>
      * </ul>
-     * @since 1.1
+     * @since 2.0.0
      */
     @Parameter(property = "arguments")
     private String arguments;
@@ -149,7 +149,7 @@ public class SkinMojo extends AbstractMojo {
 
     /**
      * In most cases this plugin can discover the original publishDate. You could set this value for those cases when this fails
-     * @since 1.1
+     * @since 2.0.0
      */
     @Parameter(property = "siteskinner.publishDate")
     private String publishDate;
@@ -157,7 +157,7 @@ public class SkinMojo extends AbstractMojo {
     /**
      * Specifies the input encoding.
      * @since 1.0
-     * @deprecated ignored since 1.1: the site descriptor is read with the encoding its XML declaration names.
+     * @deprecated ignored since 2.0.0: the site descriptor is read with the encoding its XML declaration names.
      */
     @Deprecated
     @Parameter(defaultValue = "${project.build.sourceEncoding}", property = "encoding")
@@ -166,7 +166,7 @@ public class SkinMojo extends AbstractMojo {
     /**
      * Specifies the output encoding.
      * @since 1.0
-     * @deprecated ignored since 1.1: the re-rendered site uses the encoding of the released project.
+     * @deprecated ignored since 2.0.0: the re-rendered site uses the encoding of the released project.
      */
     @Deprecated
     @Parameter(defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding")

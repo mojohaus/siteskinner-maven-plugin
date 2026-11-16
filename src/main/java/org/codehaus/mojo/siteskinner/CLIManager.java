@@ -35,7 +35,7 @@ import org.apache.commons.cli.ParseException;
  * When migrating this plugin to M3, this class could be removed.
  *
  * @author Robert Scholte
- * @since 1.1
+ * @since 2.0.0
  */
 public class CLIManager {
     public static final char SET_SYSTEM_PROPERTY = 'D';
