@@ -392,7 +392,7 @@ public class SkinMojo extends AbstractMojo {
                 outputTimestamp(
                         releaseDate,
                         publishDate != null,
-                        releasedProject.getProperties().getProperty(OUTPUT_TIMESTAMP)));
+                        releasedProject.getOriginalModel().getProperties().getProperty(OUTPUT_TIMESTAMP)));
 
         invoker.setLocalRepositoryDirectory(
                 session.getRepositorySession().getLocalRepository().getBasedir());
