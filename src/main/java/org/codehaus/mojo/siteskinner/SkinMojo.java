@@ -264,9 +264,9 @@ public class SkinMojo extends AbstractMojo {
         String releasedSiteDirectory = releasedConfig == null || releasedConfig.getChild("siteDirectory") == null
                 ? "src/site"
                 : releasedConfig.getChild("siteDirectory").getValue();
-        String releasedLocales = (releasedConfig == null || releasedConfig.getChild("locales") == null
+        String releasedLocales = releasedConfig == null || releasedConfig.getChild("locales") == null
                 ? null
-                : releasedConfig.getChild("locales").getValue());
+                : releasedConfig.getChild("locales").getValue();
 
         Xpp3Dom currentConfig = getSitePluginConfiguration(currentProject);
         String currentSiteDirectory = currentConfig == null || currentConfig.getChild("siteDirectory") == null
@@ -446,7 +446,7 @@ public class SkinMojo extends AbstractMojo {
                 // ----------------------------------------------------------------------
                 // Profile Activation
                 // ----------------------------------------------------------------------
-                List<String> profiles = new ArrayList<String>();
+                List<String> profiles = new ArrayList<>();
 
                 if (cl.hasOption(CLIManager.ACTIVATE_PROFILES)) {
                     String[] profileOptionValues = cl.getOptionValues(CLIManager.ACTIVATE_PROFILES);
