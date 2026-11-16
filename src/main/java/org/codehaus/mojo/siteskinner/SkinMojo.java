@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -99,6 +102,8 @@ import org.eclipse.aether.version.Version;
 public class SkinMojo extends AbstractMojo {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
 
+    private static final String OUTPUT_TIMESTAMP = "project.build.outputTimestamp";
+
     /** Site plugins that read the 2.0.0 site model. */
     private static final String DOXIA_2_SITE_PLUGINS = "[3.20.0,4.0.0-M1),[4.0.0-M10,)";
 
@@ -153,6 +158,8 @@ public class SkinMojo extends AbstractMojo {
      */
     @Parameter(property = "siteskinner.publishDate")
     private String publishDate;
+
+    private Date releaseDate;
 
     /**
      * Specifies the input encoding.
@@ -271,6 +278,8 @@ public class SkinMojo extends AbstractMojo {
             File currentSiteDir = resolveSiteDirectory(currentProject.getBasedir(), currentSiteDirectory);
             File releasedSiteDir = resolveSiteDirectory(releasedProject.getBasedir(), releasedSiteDirectory);
 
+            releaseDate = null;
+
             for (Locale locale : siteTool.getSiteLocales(releasedLocales)) {
                 SiteModel resolvedCurrentModel;
                 try {
@@ -315,12 +324,8 @@ public class SkinMojo extends AbstractMojo {
                 Xpp3Dom mergedCustom =
                         mergeSiteModels(currentModel, resolvedCurrentModel.getSkin(), releasedModel, mergeBody);
 
-                String publishDateFormat;
-                if (releasedModel.getPublishDate() != null) {
-                    publishDateFormat = releasedModel.getPublishDate().getFormat();
-                } else {
-                    publishDateFormat = new PublishDate().getFormat();
-                }
+                // format and parse in the time zone the site plugin renders the date in
+                SimpleDateFormat dateFormat = publishDateFormat(releasedModel.getPublishDate());
 
                 Xpp3Dom publishDateChild = new Xpp3Dom("publishDate");
 
@@ -354,13 +359,13 @@ public class SkinMojo extends AbstractMojo {
 
                         deployDate = entry.getTime();
                     }
-                    Date releaseDate = new Date(deployDate);
+                    releaseDate = new Date(deployDate);
 
-                    publishDateValue = new SimpleDateFormat(publishDateFormat).format(releaseDate);
+                    publishDateValue = dateFormat.format(releaseDate);
                 } else {
                     // verify that specified publishDate matches the publishDateFormat
                     try {
-                        new SimpleDateFormat(publishDateFormat).parse(publishDate);
+                        releaseDate = dateFormat.parse(publishDate);
                     } catch (java.text.ParseException e) {
                         throw new MojoExecutionException(e.getMessage());
                     }
@@ -382,7 +387,12 @@ public class SkinMojo extends AbstractMojo {
             throw new MojoExecutionException(e.getMessage());
         }
 
-        InvocationRequest request = buildInvokerRequest(releasedProject);
+        InvocationRequest request = buildInvokerRequest(
+                releasedProject,
+                outputTimestamp(
+                        releaseDate,
+                        publishDate != null,
+                        releasedProject.getProperties().getProperty(OUTPUT_TIMESTAMP)));
 
         invoker.setLocalRepositoryDirectory(
                 session.getRepositorySession().getLocalRepository().getBasedir());
@@ -414,8 +424,13 @@ public class SkinMojo extends AbstractMojo {
         }
     }
 
-    private InvocationRequest buildInvokerRequest(MavenProject releasedProject) throws MojoFailureException {
+    private InvocationRequest buildInvokerRequest(MavenProject releasedProject, String outputTimestamp)
+            throws MojoFailureException {
         InvocationRequest request = new DefaultInvocationRequest();
+        Properties userProperties = new Properties();
+        if (outputTimestamp != null) {
+            userProperties.setProperty(OUTPUT_TIMESTAMP, outputTimestamp);
+        }
         request.addArg(siteDeploy ? "site-deploy" : "site");
         request.setPomFile(releasedProject.getFile());
         request.setShowErrors(true);
@@ -448,7 +463,6 @@ public class SkinMojo extends AbstractMojo {
                 }
 
                 if (cl.hasOption(CLIManager.SET_SYSTEM_PROPERTY)) {
-                    Properties userProperties = new Properties();
                     String[] defStrs = cl.getOptionValues(CLIManager.SET_SYSTEM_PROPERTY);
 
                     if (defStrs != null) {
@@ -456,7 +470,6 @@ public class SkinMojo extends AbstractMojo {
                             setCliProperty(defStr, userProperties);
                         }
                     }
-                    request.setProperties(userProperties);
                 }
             } catch (ParseException e) {
                 throw new MojoFailureException("Unsupported option: " + e.getMessage());
@@ -464,7 +477,40 @@ public class SkinMojo extends AbstractMojo {
                 throw new MojoFailureException(e.getMessage());
             }
         }
+        if (!userProperties.isEmpty()) {
+            request.setProperties(userProperties);
+        }
         return request;
+    }
+
+    static SimpleDateFormat publishDateFormat(PublishDate publishDate) {
+        SimpleDateFormat format = new SimpleDateFormat(publishDate.getFormat());
+        String timezone = publishDate.getTimezone();
+        format.setTimeZone(
+                "system".equalsIgnoreCase(timezone) ? TimeZone.getDefault() : TimeZone.getTimeZone(timezone));
+        return format;
+    }
+
+    /**
+     * The publish date for the re-rendered site. Doxia 2 skins show the date maven-site-plugin takes from
+     * {@code project.build.outputTimestamp}, so the original date is passed to the forked build in that property.
+     *
+     * @param releaseDate the original publish date, or {@code null} when unknown
+     * @param explicit whether {@code releaseDate} comes from the {@code publishDate} parameter
+     * @param releasedOutputTimestamp the released project's {@code project.build.outputTimestamp}, or {@code null}
+     * @return the value to pass, or {@code null} to leave the released project's own value
+     */
+    static String outputTimestamp(Date releaseDate, boolean explicit, String releasedOutputTimestamp) {
+        if (releaseDate == null) {
+            return null;
+        }
+        // a release made with reproducible builds already records its date; one character disables it
+        if (!explicit
+                && releasedOutputTimestamp != null
+                && releasedOutputTimestamp.trim().length() > 1) {
+            return null;
+        }
+        return DateTimeFormatter.ISO_INSTANT.format(releaseDate.toInstant().truncatedTo(ChronoUnit.SECONDS));
     }
 
     /**
