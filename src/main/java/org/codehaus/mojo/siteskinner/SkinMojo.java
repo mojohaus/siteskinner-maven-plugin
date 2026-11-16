@@ -95,7 +95,7 @@ import org.eclipse.aether.version.Version;
  * <code>mvn site</code> on the checked out project. Now you can verify the pages and run <code>mvn site:deploy</code>
  * on the checked out project.
  */
-@Mojo(name = "skin", requiresDirectInvocation = true, aggregator = true)
+@Mojo(name = "skin", aggregator = true)
 public class SkinMojo extends AbstractMojo {
     private static final String MAVEN_SITE_PLUGIN_KEY = "org.apache.maven.plugins:maven-site-plugin";
 
@@ -133,7 +133,7 @@ public class SkinMojo extends AbstractMojo {
 
     /**
      * If {@code true}, all the elements of the body in the {@code site.xml} will be merged, except the menu items. Set
-     * to {@false} if you don't want to merge the body.
+     * to {@code false} if you don't want to merge the body.
      * @since 1.0
      */
     @Parameter(property = "mergeBody", defaultValue = "true")
