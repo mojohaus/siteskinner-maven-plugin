@@ -75,7 +75,6 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.InvokerLogger;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomUtils;
@@ -682,7 +681,7 @@ public class SkinMojo extends AbstractMojo {
         }
         connection = mavenProject.getScm().getDeveloperConnection();
 
-        if (StringUtils.isEmpty(connection)) {
+        if (connection == null || connection.isEmpty()) {
             throw new MojoFailureException("SCM Connection is not set in your pom.xml.");
         }
         return connection;
