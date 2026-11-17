@@ -53,6 +53,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,7 +70,7 @@ class SkinMojoTest {
     class VersionCheck {
 
         @ParameterizedTest
-        @CsvSource({"2.3", "3.0-beta-3", "3.12.1", "3.19.1", "4.0.0-M1", "4.0.0-M9"})
+        @ValueSource(strings = {"2.3", "3.0-beta-3", "3.12.1", "3.19.1", "4.0.0-M1", "4.0.0-M9"})
         void rejectsSitePluginOnDoxia1(String sitePlugin) {
             MojoFailureException e = assertThrows(
                     MojoFailureException.class,
@@ -78,7 +79,7 @@ class SkinMojoTest {
         }
 
         @ParameterizedTest
-        @CsvSource({"3.20.0", "3.21.0", "3.22.0", "4.0.0-M10", "4.0.0-M16"})
+        @ValueSource(strings = {"3.20.0", "3.21.0", "3.22.0", "4.0.0-M10", "4.0.0-M16"})
         void acceptsSitePluginOnDoxia2(String sitePlugin) {
             assertDoesNotThrow(() -> SkinMojo.verifySitePluginVersion(new DefaultArtifactVersion(sitePlugin)));
         }
