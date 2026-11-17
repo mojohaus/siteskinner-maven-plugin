@@ -235,6 +235,7 @@ public class SkinMojo extends AbstractMojo {
     }
 
     /** {@inheritDoc} */
+    @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         MavenProject releasedProject;
         Artifact releasedArtifact;
