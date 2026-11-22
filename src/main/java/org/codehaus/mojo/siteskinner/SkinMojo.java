@@ -96,10 +96,10 @@ import org.eclipse.aether.resolution.VersionRangeResult;
 import org.eclipse.aether.version.Version;
 
 /**
- * Call <code>mvn siteskinner:skin</code> on a maven project. This will check out the latest releases project. Next it
- * will add/replace the skin of the site.xml with the skin of the current project. Finally it will invoke a
- * <code>mvn site</code> on the checked out project. Now you can verify the pages and run <code>mvn site:deploy</code>
- * on the checked out project.
+ * Call <code>mvn siteskinner:skin</code> on a Maven project. This checks out the latest released version of the
+ * project. Next it adds or replaces the skin in the checked out <code>site.xml</code> with the skin of the current
+ * project. Finally it runs <code>mvn site</code> on the checked out project, in <code>target/siteskinner</code>. Now
+ * you can verify the pages and run <code>mvn site:deploy</code> there.
  */
 @Mojo(name = "skin", aggregator = true)
 public class SkinMojo extends AbstractMojo {
@@ -115,19 +115,19 @@ public class SkinMojo extends AbstractMojo {
 
     /**
      * The Maven installation that renders the released site. Defaults to the Maven that runs this plugin.
-     * @since 2.0.0
+     * @since 1.1.0
      */
     @Parameter(property = "mavenHome")
     private File mavenHome;
 
     /**
-     * Addition arguments, accepts:
+     * Additional arguments for the <code>mvn site</code> run on the released project. Only these are accepted:
      * <ul>
      *   <li>-D,--define &lt;arg&gt;</li>
      *   <li>-P,--activate-profiles &lt;arg&gt;</li>
      *   <li>-X,--debug</li>
      * </ul>
-     * @since 2.0.0
+     * @since 1.1.0
      */
     @Parameter(property = "arguments")
     private String arguments;
@@ -156,8 +156,10 @@ public class SkinMojo extends AbstractMojo {
     private boolean siteDeploy;
 
     /**
-     * In most cases this plugin can discover the original publishDate. You could set this value for those cases when this fails
-     * @since 2.0.0
+     * The original publish date of the released site. In most cases the plugin discovers it from the released
+     * artifact; set this value when that fails. It must match the date format of the <code>publishDate</code> element
+     * of the released <code>site.xml</code>.
+     * @since 1.1.0
      */
     @Parameter(property = "siteskinner.publishDate")
     private String publishDate;
@@ -167,7 +169,7 @@ public class SkinMojo extends AbstractMojo {
     /**
      * Specifies the input encoding.
      * @since 1.0
-     * @deprecated ignored since 2.0.0: the site descriptor is read with the encoding its XML declaration names.
+     * @deprecated ignored since 1.1.0: the site descriptor is read with the encoding its XML declaration names.
      */
     @Deprecated
     @Parameter(defaultValue = "${project.build.sourceEncoding}", property = "encoding")
@@ -176,13 +178,13 @@ public class SkinMojo extends AbstractMojo {
     /**
      * Specifies the output encoding.
      * @since 1.0
-     * @deprecated ignored since 2.0.0: the re-rendered site uses the encoding of the released project.
+     * @deprecated ignored since 1.1.0: the re-rendered site uses the encoding of the released project.
      */
     @Deprecated
     @Parameter(defaultValue = "${project.reporting.outputEncoding}", property = "outputEncoding")
     private String outputEncoding;
 
-    /* Read-only parmaters */
+    /* Read-only parameters */
 
     /**
      * Versionrange to calculate latest released version
@@ -206,6 +208,8 @@ public class SkinMojo extends AbstractMojo {
     private MavenProject currentProject;
 
     /**
+     * The Maven user settings file for the <code>mvn site</code> run on the released project. When not set, the invoked Maven uses its default
+     * user settings.
      * @since 1.0
      */
     @Parameter(property = "settingsFile")

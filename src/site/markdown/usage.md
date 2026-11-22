@@ -1,9 +1,7 @@
----
 title: Usage
 author:
-  - Robert Scholte
+- Robert Scholte
 date: 2012-08-31
----
 
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
@@ -14,7 +12,7 @@ to you under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance
 with the License.  You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
@@ -56,18 +54,24 @@ The skinner plugin has only a few options:
 * `siteDeploy` (default: **false**): If this value is set to true the re-skinned site will immediately be deployed.
 * `forceCheckout` (default: **false**): By setting this value to `true` a clean checkout is done instead of an update.
 * `mergeBody` (default: **true**): By setting this value to `false` none of the body elements will be merged, so the original layout is preserved.
-* `arguments` : additional arguments for `mvn site`; only `-D`, `-P` and `-X` are supported.
+* `arguments` : additional arguments for the `mvn site` run on the released project; only `-D`, `-P` and `-X` are
+  supported, for example `-Darguments="-Pfoo -Dbar=baz"`.
 * `mavenHome` : the Maven installation that renders the released site; defaults to the Maven running the plugin.
+* `settingsFile` : the Maven user settings file for the run that renders the released site; by default that Maven uses
+  its own default user settings.
+* `siteskinner.publishDate` : the original publish date of the released site, for the cases where the plugin cannot
+  discover it; see [Publish date](#Publish_date).
 
 ```sh
- mvn siteskinner:skin -DmavenHome=/path/to/maven-version
+mvn siteskinner:skin -DmavenHome=/path/to/maven-version
 ```
 
 Publish date
 ============
 
-The re-rendered site shows the original publish date: the `publishDate` parameter when set, otherwise the date the
+The re-rendered site shows the original publish date: the `siteskinner.publishDate` parameter when set (in the date format of the `publishDate` element of the released
+`site.xml`), otherwise the date the
 released artifact was built or deployed. Doxia 2 skins such as fluido 2.x show the date that maven-site-plugin takes
 from `project.build.outputTimestamp`, so the plugin passes that property to the site build. A release whose own POM sets
-`project.build.outputTimestamp`, not only its parent, keeps that value unless `publishDate` is set. The date is also written into the
+`project.build.outputTimestamp`, not only its parent, keeps that value unless `siteskinner.publishDate` is set. The date is also written into the
 `custom/publishDate` element of the released `site.xml`, for skins that read it.

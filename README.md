@@ -1,7 +1,7 @@
 # SiteSkinner Maven Plugin
 
 [![Maven Central](https://img.shields.io/maven-central/v/org.codehaus.mojo/siteskinner-maven-plugin.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/org.codehaus.mojo/siteskinner-maven-plugin)
-[![GitHub CI](https://github.com/mojohaus/siteskinner-maven-plugin/actions/workflows/maven.yml/badge.svg)](https://github.com/mojohaus/siteskinner-maven-plugin/actions/workflows/maven.yml)
+[![GitHub CI](https://github.com/mojohaus/siteskinner-maven-plugin/actions/workflows/maven.yml/badge.svg?branch=master)](https://github.com/mojohaus/siteskinner-maven-plugin/actions/workflows/maven.yml)
 
 The SiteSkinner Maven Plugin re-renders the site of the latest release of a project with the skin of the current
 project. It checks out the released sources through the `scm` connection of the released POM, merges the current
