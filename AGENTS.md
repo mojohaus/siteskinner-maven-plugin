@@ -53,6 +53,20 @@ descriptor into the released one and runs `mvn site` there through maven-invoker
   artifacts and the checkouts there.
 - Verify scripts are Groovy assertions; the last expression of a script must be `true` or `null`.
 
+## Documentation updates
+
+A change that users or contributors can notice ships with the documentation it affects, in the same
+pull request. A refactor with no visible effect needs none.
+
+- The goal page is generated from the Javadoc of `SkinMojo`: a new or changed parameter gets a
+  description, its `property` name, its default and an `@since` with the next release version
+  (the Release Drafter draft).
+- `src/site/markdown/index.md` lists the goal; `usage.md` explains the run and lists the command line
+  options and the publish date behavior; `faq.md` holds known failures and their fixes. These are
+  plain Markdown, so examples carry no filtered version.
+- `src/site/site.xml` holds the menu; `README.md` holds the requirements, a short usage and the
+  release steps; update this file when a convention, build gate or fixture changes.
+
 ## Pull requests
 
 Draft until CI is green. The PR title and its label become the release note (Release Drafter).

@@ -37,7 +37,7 @@ It can happen that the skinning fails with the message like `FileLength is not a
 This means you're using a newer checkstyle configuration file which is not supported by the used version of the maven-checkstyle-plugin.
 This can happen if the `configLocation` refers to file under version control.
 
-The easiest way to solve this is to add/override the [maven-checkstyle-plugin](http://maven.apache.org/plugins/maven-checkstyle-plugin/) version in the reports-section of the `target/siteskinner/pom.xml`
+The easiest way to solve this is to add/override the [maven-checkstyle-plugin](https://maven.apache.org/plugins/maven-checkstyle-plugin/) version in the reports-section of the `target/siteskinner/pom.xml`
 
 <a id="maven_changes_plugin"></a>
 
@@ -47,13 +47,13 @@ Sometimes a `NullPointerException` occurs if the maven-changes-plugin tries to d
 
 The plugin fails to parse the XML returned by a newer version of JIRA.
 
-The easiest way to solve this is to add/override the [maven-changes-plugin](http://maven.apache.org/plugins/maven-changes-plugin/) version in the reports-section of the `target/siteskinner/pom.xml`
+The easiest way to solve this is to add/override the [maven-changes-plugin](https://maven.apache.org/plugins/maven-changes-plugin/) version in the reports-section of the `target/siteskinner/pom.xml`
 
 <a id="maven_site_plugin"></a>
 
 ### A report caused the skinning to fail. What do I have to do?
 
-A `NoClassDefFoundError` can occur if the version of Maven is not compatable with the specified maven-site-plugin.
-Often you won't see this directly under the maven-site-plugin, but under one the reports.
+A `NoClassDefFoundError` can occur if the version of Maven is not compatible with the specified maven-site-plugin.
+Often you won't see this directly under the maven-site-plugin, but under one of the reports.
 
-You can either downgrade the version of [Maven](http://maven.apache.org/download.html) (since it has been successfully deployed in the past) or upgrade the version of the [maven-site-plugin](http://maven.apache.org/plugins/maven-site-plugin/).
+You can either downgrade the version of [Maven](https://maven.apache.org/download.html) (since it has been successfully deployed in the past) or upgrade the version of the [maven-site-plugin](https://maven.apache.org/plugins/maven-site-plugin/).
