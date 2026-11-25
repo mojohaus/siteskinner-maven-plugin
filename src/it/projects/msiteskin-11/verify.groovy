@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-assert new File( basedir, 'target/siteskinner/target/site/index.html' ).exists()
-assert !(new File( basedir, 'target/siteskinner/target/site/license.html' ).exists())
+assert new File(basedir, 'target/siteskinner/target/site/index.html').exists()
+assert !(new File(basedir, 'target/siteskinner/target/site/license.html').exists())
