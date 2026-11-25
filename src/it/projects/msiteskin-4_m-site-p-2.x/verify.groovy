@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def log = new File( basedir, 'build.log')
+def log = new File(basedir, 'build.log')
 assert log.exists()
-assert log.getText().contains( 'maven-site-plugin:2.3 of the released project is based on Doxia 1' )
+assert log.getText().contains('maven-site-plugin:2.3 of the released project is based on Doxia 1')

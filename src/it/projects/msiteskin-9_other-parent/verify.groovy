@@ -18,9 +18,9 @@
  */
 import groovy.xml.XmlSlurper
 
-def siteXml =new File( basedir, 'target/siteskinner/src/site/site.xml') 
-assert siteXml.exists() 
-def projectNode = new XmlSlurper().parse( siteXml )
+def siteXml =new File(basedir, 'target/siteskinner/src/site/site.xml')
+assert siteXml.exists()
+def projectNode = new XmlSlurper().parse(siteXml)
 assert projectNode.skin.size() == 1
 assert projectNode.skin.groupId == 'org.apache.maven.skins'
 assert projectNode.skin.artifactId == 'maven-fluido-skin'

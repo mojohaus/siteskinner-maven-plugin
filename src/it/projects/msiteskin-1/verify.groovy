@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-assert new File( basedir, 'target/siteskinner/target/site/index.html' ).exists()
-assert new File( basedir, 'target/siteskinner/mojo-1834-api/target/site/index.html' ).exists()
-assert new File( basedir, 'target/siteskinner/mojo-1834-impl/target/site/index.html' ).exists()
+assert new File(basedir, 'target/siteskinner/target/site/index.html').exists()
+assert new File(basedir, 'target/siteskinner/mojo-1834-api/target/site/index.html').exists()
+assert new File(basedir, 'target/siteskinner/mojo-1834-impl/target/site/index.html').exists()

@@ -18,7 +18,7 @@
  */
 import groovy.xml.XmlSlurper
 
-def projectNode = new XmlSlurper().parse( new File( basedir, 'target/siteskinner/src/site/site.xml') )
+def projectNode = new XmlSlurper().parse(new File(basedir, 'target/siteskinner/src/site/site.xml'))
 assert projectNode.bannerLeft.size() == 1
 assert projectNode.bannerRight.size() == 1
 assert projectNode.custom.size() == 1
